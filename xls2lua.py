@@ -1,7 +1,8 @@
 import re
 import sys
-import cmd
+import entry
 import xls_exporter
+from xls_exporter import add_quote
 
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字
@@ -72,4 +73,4 @@ class LuaFormatter(xls_exporter.Formatter):
         return 'nil'
 
 if __name__ == '__main__':
-    sys.exit(cmd.cmd(sys.argv, 'lua', LuaFormatter()))
+    sys.exit(entry.main(sys.argv, 'lua', LuaFormatter()))

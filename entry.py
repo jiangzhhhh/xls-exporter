@@ -1,11 +1,9 @@
 import os
-import re
 import xls_exporter
-from xls_exporter import add_quote
 from xls_exporter import error
 import codecs
 
-def cmd(argv, file_extention, formatter):
+def main(argv, file_extention, formatter):
     argc = len(argv)
     if argc < 2:
         msg = 'usage: xls2%s.py <input_file> [<output_file>]' % file_extention

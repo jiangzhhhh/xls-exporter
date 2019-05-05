@@ -1,7 +1,8 @@
 import re
 import sys
-import cmd
+import entry
 import xls_exporter
+from xls_exporter import add_quote
 
 class JsonFormatter(xls_exporter.Formatter):
     def as_key(self, key):
@@ -54,4 +55,4 @@ class JsonFormatter(xls_exporter.Formatter):
         return 'none'
 
 if __name__ == '__main__':
-    sys.exit(cmd.cmd(sys.argv, 'json', JsonFormatter()))
+    sys.exit(entry.main(sys.argv, 'json', JsonFormatter()))
