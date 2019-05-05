@@ -67,6 +67,10 @@ class TypeTree(object):
         self.cursor = (sheet_name, col)
 
     def add_member(self, key, member):
+        if isinstance(key, int) and self.type in (Types.struct_t, Types.dict_t):
+            parse_error('xxx')
+        elif isinstance(key, strings) and self.type in (Types.array_t, Types.embedded_array_t):
+            parse_error('yyy')
         self.members.append((key,member))
 
     def get_member(self, member_name):
