@@ -61,7 +61,7 @@ class TypeTree(object):
         self.required = False
         self.default = None
         self.value = None
-        self.elem_type = None # only for embbed array
+        self.elem_type = None # only for embedded array
 
     def set_cursor(self, sheet_name, col):
         self.cursor = (sheet_name, col)
