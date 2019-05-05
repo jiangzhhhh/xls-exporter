@@ -541,14 +541,14 @@ def error(*args, **kwargs):
 
 
 if __name__ == '__main__':
-	def protect_parse(file):
-		try:
-			parse(file, verbose=False)
-		except Exception as e:
-			error('%s error:%s' % (file, e))
-	protect_parse('example/define.xlsx')
-	protect_parse('example/example.xlsx')
-	protect_parse('example/empty.xlsx')
-	protect_parse('example/list.xlsx')
-	protect_parse('example/error.xlsx')
-	protect_parse('example/invalid-file-format.xlsx')
+    def protect_parse(file):
+        try:
+            parse(file, verbose=False)
+        except Exception as e:
+            error('%s error:%s' % (file, e))
+    protect_parse('example/define.xlsx')
+    protect_parse('example/example.xlsx')
+    protect_parse('example/empty.xlsx')
+    protect_parse('example/list.xlsx')
+    protect_parse('example/error.xlsx')
+    protect_parse('example/invalid-file-format.xlsx')
