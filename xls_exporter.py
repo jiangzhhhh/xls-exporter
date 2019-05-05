@@ -510,6 +510,11 @@ def parse(file_path, verbose=True):
                 root.add_member(key_value.value, value_value)
         elif type_tree.members[0][1].is_unique():
             (_, key_type) = type_tree.members[0]
+
+            if key_type.type not in (Types.int_t, Types.string_t):
+                (_, col) = key_type.cursor
+                parse_error('主键类型错误,表:%s,列:%s,主键类型只能是整型或者字符串' % (sheet_name, to_xls_col(col)))
+
             root = root or ValueTree(TypeTree(Types.dict_t))
             # 前三行为结构定义行，从第四行开始遍历
             for (row, row_data) in row_cells[3:]:
@@ -533,3 +538,17 @@ def parse(file_path, verbose=True):
 
 def error(*args, **kwargs):
     return print(*args, file=sys.stderr, **kwargs)
+
+
+if __name__ == '__main__':
+	def protect_parse(file):
+		try:
+			parse(file, verbose=False)
+		except Exception as e:
+			error('%s error:%s' % (file, e))
+	protect_parse('example/define.xlsx')
+	protect_parse('example/example.xlsx')
+	protect_parse('example/empty.xlsx')
+	protect_parse('example/list.xlsx')
+	protect_parse('example/error.xlsx')
+	protect_parse('example/invalid-file-format.xlsx')
