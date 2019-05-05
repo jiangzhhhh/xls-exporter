@@ -17,18 +17,15 @@ except:
 # 异常定义
 # 结构异常
 class ParseError(RuntimeError):
-    def __init__(self, msg):
-        super().__init__(msg)
+    pass
 
 # 数据异常
 class EvalError(RuntimeError):
-    def __init__(self, msg):
-        super().__init__(msg)
+    pass
 
 # 文件格式异常
 class FileFormatError(RuntimeError):
-    def __init__(self, msg):
-        super().__init__(msg)
+    pass
 
 # 定义符号
 class Types(object):
@@ -234,9 +231,9 @@ class ValueTree(object):
             self.eval_value(text)
 
     def __str__(self):
-        return self.print(formatter=Formatter())
+        return self.tostring(formatter=Formatter())
 
-    def print(self, formatter=Formatter()):
+    def tostring(self, formatter=Formatter()):
         return formatter.as_any(self, 0)
 
     def is_empty(self):
@@ -536,16 +533,15 @@ def parse(file_path, verbose=True):
                 i += 1
     return root or ValueTree(TypeTree(Types.dict_t))
 
-def error(*args, **kwargs):
-    return print(*args, file=sys.stderr, **kwargs)
-
+def error(msg):
+    sys.stderr.write(msg + '\n')
 
 if __name__ == '__main__':
     def protect_parse(file):
         try:
             parse(file, verbose=False)
         except Exception as e:
-            error('%s error:%s' % (file, e))
+            error('%s error:%s' % (file, str(e)))
     protect_parse('example/define.xlsx')
     protect_parse('example/example.xlsx')
     protect_parse('example/empty.xlsx')

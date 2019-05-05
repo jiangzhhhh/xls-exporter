@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import xls_exporter
 from xls_exporter import error
@@ -19,7 +20,7 @@ def main(argv, file_extention, formatter):
 
         try:
             value_tree = xls_exporter.parse(input_file, verbose=True)
-            out = value_tree.print(formatter=formatter)
+            out = value_tree.tostring(formatter=formatter)
             # 输出文件
             with codecs.open(output_file, "w+", "utf-8") as f:
                 f.write(out)

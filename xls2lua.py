@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 import sys
 import entry
@@ -7,8 +8,8 @@ from xls_exporter import add_quote
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字
 reserved_keywords = [
-  'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 
-  'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 
+  'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
+  'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
   'return', 'then', 'true', 'until', 'while' ]
 
 # 判断字符串是否合法变量名
