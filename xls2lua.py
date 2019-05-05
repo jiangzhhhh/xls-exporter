@@ -1,8 +1,7 @@
-import os
 import re
+import sys
+import cmd
 import xls_exporter
-from xls_exporter import add_quote
-import codecs
 
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字
@@ -72,26 +71,5 @@ class LuaFormatter(xls_exporter.Formatter):
     def as_nil(self, value_tree, ident):
         return 'nil'
 
-def main(argv):
-    argc = len(argv)
-    if argc < 2:
-        error('usage: xls2lua.py <input_file> [<output_file>]')
-        return 2
-    else:
-        input_file = argv[1]
-        if argc > 2:
-            output_file = argv[2]
-        else:
-            pre, ext = os.path.splitext(input_file)
-            output_file = pre + '.lua'
-        value_tree = xls_exporter.parse(input_file, verbose=True)
-        out = value_tree.print(formatter=LuaFormatter())
-        # 输出文件
-        with codecs.open(output_file, "w+", "utf-8") as f:
-            f.write(out)
-    return 0
-
 if __name__ == '__main__':
-    main(['', './example/example.xlsx'])
-    main(['', './example/list.xlsx'])
-    main(['', './example/empty.xlsx'])
+    sys.exit(cmd.cmd(sys.argv, 'lua', LuaFormatter()))
