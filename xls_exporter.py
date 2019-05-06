@@ -6,7 +6,7 @@ import re
 import os
 
 # fuck py2
-strings = (str)
+strings = (str,)
 try:
     reload(sys)
     sys.setdefaultencoding("utf-8")
@@ -20,11 +20,11 @@ class ParseError(RuntimeError):
     pass
 
 # 数据异常
-class EvalError(RuntimeError):
+class EvalError(ParseError):
     pass
 
 # 文件格式异常
-class FileFormatError(RuntimeError):
+class FileFormatError(ParseError):
     pass
 
 # 定义符号
@@ -271,13 +271,13 @@ def eval_error(msg):
     raise EvalError('[求值错误]%s' % msg)
 
 # 为字符串内容添加双引号
+translation = {
+    '"':'\\"',
+    '\\':'\\\\"',
+    '\n':'\\n',
+    '\\r':'\\r',
+}
 def add_quote(text):
-    translation = {
-        '"':'\\"',
-        '\\':'\\\\"',
-        '\n':'\\n',
-        '\\r':'\\r',
-    }
     out = ''
     for c in text:
         v = translation.get(c, c)
@@ -287,7 +287,12 @@ def add_quote(text):
 # 读取xls文件内容，并过滤注释行
 # 返回{sheet_name:[(row, row_cells),...]}
 def read_sheets_from_xls(file_path):
-    workbook = xlrd.open_workbook(file_path)
+    workbook = None
+    try:
+        workbook = xlrd.open_workbook(file_path)
+    # 将xlrd的异常转化为自定义异常向上传播
+    except xlrd.biffh.XLRDError as e:
+        raise FileFormatError(str(e))
     sheets = []
     reading_setting = True
     for sheet in workbook.sheets():
@@ -478,7 +483,6 @@ def parse(file_path, verbose=True):
 
     root = None
     # 求值
-    lst = []
     i = 0
     for (sheet_name, row_cells, settings) in sheets:
         (_, type_tree) = type_trees[i]

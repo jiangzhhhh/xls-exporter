@@ -25,7 +25,7 @@ def main(argv, file_extention, formatter):
             with codecs.open(output_file, "w+", "utf-8") as f:
                 f.write(out)
             print('write file:%s' % os.path.abspath(output_file))
-        except (xls_exporter.ParseError,xls_exporter.EvalError,xls_exporter.FileFormatError) as e:
-            error(e)
+        except (xls_exporter.ParseError) as e:
+            error(str(e))
             return 3
     return 0
