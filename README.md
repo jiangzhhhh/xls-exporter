@@ -65,5 +65,11 @@ skills=[{cd=1,id=2},{cd=3,id=4}]
 生成：
 skills=[1,2,3]
 ```
+# 构建
+```
+用
+pyinstaller -F xls2lua.py
+构建xls2lua.exe
+```
 
 # etc
