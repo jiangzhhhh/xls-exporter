@@ -239,7 +239,7 @@ class ValueTree(object):
     def is_empty(self):
         if self.type_tree.type in (Types.struct_t, Types.array_t, Types.dict_t, Types.embedded_array_t):
             for (_, m) in self.members:
-                if m.is_empty():
+                if not m.is_empty():
                     return False
             return True
         else:
