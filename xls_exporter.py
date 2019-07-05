@@ -224,7 +224,7 @@ class ValueTree(object):
                 else:
                     raise ValueError
             elif treeType == Types.embedded_array_t: # 内嵌数组
-                arr = str(10).split(',')
+                arr = str(text).split(',')
                 size_arr = len(arr)
                 # 从后往前遍历，找到最后一个有效下标，用于过滤尾部空项
                 last_valid_index = size_arr-1
