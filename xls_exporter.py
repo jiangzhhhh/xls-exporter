@@ -174,7 +174,7 @@ class ValueTree(object):
     def add_member(self, key, member):
         self.members.append((key, member))
 
-    def eval_value(self, text):
+    def eval_value(self, row, text):
         (sheet_name, col) = self.type_tree.cursor
         # 如果有填写了空值，且存在默认值，则替换之
         if self.type_tree.default is not None and (text in empty_values):
@@ -201,7 +201,7 @@ class ValueTree(object):
                 else:
                     raise ValueError
             elif self.type_tree.type == Types.embedded_array_t: # 内嵌数组
-                arr = text.split(',')
+                arr = str(text).split(',')
                 size_arr = len(arr)
                 # 从后往前遍历，找到最后一个有效下标，用于过滤尾部空项
                 last_valid_index = size_arr-1
@@ -215,7 +215,7 @@ class ValueTree(object):
                     elem_member_type = TypeTree(self.type_tree.elem_type)
                     elem_member_type.set_cursor(*self.type_tree.cursor)
                     elem_value_tree = ValueTree(elem_member_type)
-                    elem_value_tree.eval_value(v)
+                    elem_value_tree.eval_value(row, v)
                     self.add_member(i, elem_value_tree)
                     i += 1
         except ValueError:
@@ -228,7 +228,7 @@ class ValueTree(object):
         else:
             (sheet_name, col) = self.type_tree.cursor
             text = row_data[col].value
-            self.eval_value(text)
+            self.eval_value(row, text)
 
     def __str__(self):
         return self.tostring(formatter=Formatter())
