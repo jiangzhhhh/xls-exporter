@@ -76,7 +76,7 @@ class LuaFormatter(xls_exporter.Formatter):
         return 'nil'
     def as_vector(self, value_tree, ident):
         match = vector_pat.match(value_tree.value)
-        vecValues = match.group(1).strip('(').strip(')').split(",")
+        vecValues = match.group(1).strip('(').strip(')').replace(":", "=").split(",")
         return '{%s}' % (','.join(vecValues))
     def as_vector_array(self, value_tree, ident):
         lst = []
