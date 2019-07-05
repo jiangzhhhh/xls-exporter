@@ -37,9 +37,11 @@ class Types(object):
     array_t = 'array'
     embedded_array_t = 'embedded_array'
     dict_t = 'dict'
+    vector_t = 'vector'
+    vector_array_t = 'vector_array'
 
 # 直接求值类型
-value_types = (Types.int_t,Types.float_t,Types.bool_t,Types.string_t)
+value_types = (Types.int_t,Types.float_t,Types.bool_t,Types.string_t,Types.vector_t,Types.vector_array_t)
 empty_values = ('', None)
 
 # 正则
@@ -47,6 +49,8 @@ array_pat = re.compile(r'^(\w+)\[(\d+)\]$')
 embedded_array_pat = re.compile(r'^(\w+)\[\]$')
 default_option_pat = re.compile(r'default\s*=\s*(.+)$')
 setting_pat = re.compile(r'//\$(.+)$')
+vector_pat = re.compile(r'(\([^\)]*\))')
+vector_array_pat = re.compile(r'(\([^\)]*\)\[\])')
 
 class TypeTree(object):
     def __init__(self, type):
@@ -128,6 +132,10 @@ class Formatter(object):
             return self.as_bool(value_tree, ident)
         elif type == Types.string_t:
             return self.as_string(value_tree, ident)
+        elif type == Types.vector_t:
+            return self.as_vector(value_tree, ident)
+        elif type == Types.vector_array_t:
+            return self.as_vector_array(value_tree, ident)
     def as_struct(self, value_tree, ident):
         s = '{'
         if ident == 0: s += '\n'
@@ -162,6 +170,20 @@ class Formatter(object):
         return add_quote(value_tree.value)
     def as_nil(self, value_tree, ident):
         return 'None'
+    def as_vector(self, value_tree, ident):
+        s = '{'
+        if ident == 0: s += '\n'
+        for (k,m) in value_tree.members:
+            s += '%s:%s,' % (k, self.as_any(m, ident+1))
+            if ident == 0: s += '\n'
+        s += '}'
+    def as_vector_array(self, value_tree, ident):
+        s = '{'
+        if ident == 0: s += '\n'
+        for (k,m) in value_tree.members:
+            s += '%s:%s,' % (k, self.as_any(m, ident+1))
+            if ident == 0: s += '\n'
+        s += '}'
 
 class ValueTree(object):
     def __init__(self, type_tree):
@@ -174,21 +196,22 @@ class ValueTree(object):
     def add_member(self, key, member):
         self.members.append((key, member))
 
-    def eval_value(self, row, text):
+    def eval_value(self, text,row):
         (sheet_name, col) = self.type_tree.cursor
         # 如果有填写了空值，且存在默认值，则替换之
         if self.type_tree.default is not None and (text in empty_values):
             text = self.type_tree.default
         try:
             # 将xls单元格文本转换为内部表示值
-            if self.type_tree.type in value_types:
+            treeType = self.type_tree.type
+            if treeType in value_types:
                 if text in empty_values:
                     self.value = None
-                elif self.type_tree.type == Types.int_t:
+                elif treeType == Types.int_t:
                     self.value = int(text)
-                elif self.type_tree.type == Types.float_t:
+                elif treeType == Types.float_t:
                     self.value = float(text)
-                elif self.type_tree.type == Types.bool_t:
+                elif treeType == Types.bool_t:
                     lower_str = str(int(text)).lower()
                     if lower_str in ('0', 'false'):
                         self.value = False
@@ -196,12 +219,12 @@ class ValueTree(object):
                         self.value = True
                     else:
                         raise ValueError
-                elif self.type_tree.type == Types.string_t:
+                elif treeType == Types.string_t or treeType == Types.vector_t or treeType == Types.vector_array_t:
                     self.value = text
                 else:
                     raise ValueError
-            elif self.type_tree.type == Types.embedded_array_t: # 内嵌数组
-                arr = str(text).split(',')
+            elif treeType == Types.embedded_array_t: # 内嵌数组
+                arr = str(10).split(',')
                 size_arr = len(arr)
                 # 从后往前遍历，找到最后一个有效下标，用于过滤尾部空项
                 last_valid_index = size_arr-1
@@ -215,7 +238,7 @@ class ValueTree(object):
                     elem_member_type = TypeTree(self.type_tree.elem_type)
                     elem_member_type.set_cursor(*self.type_tree.cursor)
                     elem_value_tree = ValueTree(elem_member_type)
-                    elem_value_tree.eval_value(row, v)
+                    elem_value_tree.eval_value(v,row)
                     self.add_member(i, elem_value_tree)
                     i += 1
         except ValueError:
@@ -228,7 +251,7 @@ class ValueTree(object):
         else:
             (sheet_name, col) = self.type_tree.cursor
             text = row_data[col].value
-            self.eval_value(row, text)
+            self.eval_value(text,row)
 
     def __str__(self):
         return self.tostring(formatter=Formatter())
@@ -332,6 +355,17 @@ def build_type_tree(sheet_name, sheet_cells):
         if m:
             decl_type = Types.embedded_array_t
             elem_type = m.group(1)
+        else:
+            m = vector_array_pat.match(decl_type)
+            if m:
+                decl_type = Types.vector_array_t
+                elem_type = Types.vector_array_t
+            else:
+                m = vector_pat.match(decl_type)
+                if m:
+                    decl_type = Types.vector_t
+                    elem_type = Types.vector_t
+
         # 检查数据类型
         if elem_type not in value_types:
             # 声明了未知数据类型
