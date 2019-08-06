@@ -208,11 +208,11 @@ class ValueTree(object):
                 if text in empty_values:
                     self.value = None
                 elif treeType == Types.int_t:
-                    self.value = int(text)
+                    self.value = to_int(text)
                 elif treeType == Types.float_t:
                     self.value = float(text)
                 elif treeType == Types.bool_t:
-                    lower_str = str(int(text)).lower()
+                    lower_str = str(to_int(text)).lower()
                     if lower_str in ('0', 'false'):
                         self.value = False
                     elif lower_str in ('1', 'true'):
@@ -241,8 +241,8 @@ class ValueTree(object):
                     elem_value_tree.eval_value(v,row)
                     self.add_member(i, elem_value_tree)
                     i += 1
-        except ValueError:
-            eval_error('表:%s,列:%s,行:%s,填写了跟定义类型(%s)不一致的值:%s' % (sheet_name, to_xls_col(col), to_xls_row(row), self.type_tree.type, text))
+        except ValueError as e:
+            eval_error('表:%s,列:%s,行:%s,填写了跟定义类型(%s)不一致的值:%s\ndetail:%s' % (sheet_name, to_xls_col(col), to_xls_row(row), self.type_tree.type, text, str(e)))
 
     def eval(self, row, row_data):
         if self.type_tree.type in (Types.array_t,Types.struct_t):
@@ -284,6 +284,9 @@ def to_xls_col(num):
 
 def to_xls_row(num):
     return str(num+1)
+
+def to_int(v):
+    return int(float(v))
 
 # 输出解析错误信息并退出程序
 def parse_error(msg):
@@ -379,7 +382,7 @@ def build_type_tree(sheet_name, sheet_cells):
             index = None
             if m:
                 term = m.group(1)
-                index = int(m.group(2))
+                index = to_int(m.group(2))
             lookup = parent.get_member(term)
             if lookup is None:
                 lookup = TypeTree(Types.struct_t if index is None else Types.array_t)
