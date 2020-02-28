@@ -41,6 +41,8 @@ class JsonFormatter(xls_exporter.Formatter):
                     continue
                 lst.append('%s:%s' % (self.as_key(k), self.as_any(m, ident+1)))
             return '{%s}' % (','.join(lst))
+    def as_tuple(self, value_tree, ident):
+        return self.as_array(value_tree, ident)
     def as_int(self, value_tree, ident):
         return str(value_tree.value)
     def as_float(self, value_tree, ident):

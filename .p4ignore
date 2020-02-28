@@ -1,0 +1,11 @@
+/xls2lua-gui/.vs
+/xls2lua-gui/obj
+/build
+/dist
+/__pycache__
+/*.spec
+/excel-addin/.vs
+/excel-addin/obj
+/excel-addin/bin
+/excel-addin/publish
+/example/Data

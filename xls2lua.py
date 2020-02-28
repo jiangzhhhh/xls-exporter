@@ -59,6 +59,8 @@ class LuaFormatter(xls_exporter.Formatter):
             return '{%s}' % (','.join(lst))
     def as_dict(self, value_tree, ident):
         return self.as_table(value_tree, ident)
+    def as_tuple(self, value_tree, ident):
+        return self.as_array(value_tree, ident)
     def as_int(self, value_tree, ident):
         return str(value_tree.value)
     def as_float(self, value_tree, ident):
