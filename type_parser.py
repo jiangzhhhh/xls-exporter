@@ -40,7 +40,11 @@ def build_type(node: Node):
     elif expr_name == 'tuple':
         (_, tuple_members, _) = node.children
         tuple_node = TypeTree('tuple')
-        members = collect_tuple_members(tuple_members)
+        (tuple_member, *maybe_many_tuple_member) = tuple_members
+        members = [tuple_member]
+        if maybe_many_tuple_member:
+            for (_, _, tuple_more_member) in maybe_many_tuple_member[0]:
+                members += [tuple_more_member]
         index = 0
         for member_type in members:
             tuple_node.add_member(index, build_type(member_type))
