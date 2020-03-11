@@ -2,7 +2,7 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node
 from xls_exporter import TypeTree
 
-type_grammar = Grammar(
+grammar = Grammar(
 '''
 trim_space = space type space
 type = array / tuple / base_type
@@ -12,40 +12,6 @@ tuple = '(' tuple_members ')'
 tuple_members = type (',' space type)*
 space = ~'\s*'
 ''')
-
-int_grammar = Grammar(
-r'''
-int = hex / bin / dec
-dec = ~r'[0-9]+'
-hex = '0x' ~r'[0-9a-fA-F]+'
-bin = '0b' ~r'[0-1]+'
-''')
-
-float_grammar = Grammar(
-r'''
-float = numberal? float_tail
-float_tail = '.' fact
-fact = numberal 
-numberal = ~r'[0-9]+'
-''')
-
-bool_grammar = Grammar(
-r'''
-bool = true_false / one_zero
-true_false = 'TRUE' / 'FALSE' / 'true' / 'false'
-one_zero = ~r'[0-1]'
-'''
-)
-
-string_grammar = Grammar(
-r'''
-string = character+
-character = escaping / non_backslash
-non_backslash = ~r'[^\\]'
-escaping = backslash ~'.'
-backslash = '\\'
-'''
-)
 
 def build_type(grammar_tree: Node):
     expr_name = grammar_tree.expr_name
@@ -82,12 +48,9 @@ def build_type(grammar_tree: Node):
     else:
         return build_type(grammar_tree.children[0])
 
-if __name__ == '__main__':
-    grammar_tree = type_grammar.parse('((string,int,float)[])[]')
-    root = build_type(grammar_tree)
-    print(int_grammar.parse('0x123'))
-    print(float_grammar.parse('.1'))
-    print(bool_grammar.parse('true'))
-    print(string_grammar.parse(r'abc\d1234\5\\'))
-    print(string_grammar.parse('\t'))
+def parse(text: str):
+    grammar_tree = grammar.parse(text)
+    return build_type(grammar_tree)
 
+if __name__ == '__main__':
+    print(parse('((string,int,float)[])[]'))
