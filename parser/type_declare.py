@@ -48,9 +48,9 @@ def build_type(grammar_tree: Node):
     else:
         return build_type(grammar_tree.children[0])
 
-def parse(text: str):
+def parse_type_tree(text: str):
     grammar_tree = grammar.parse(text)
     return build_type(grammar_tree)
 
 if __name__ == '__main__':
-    print(parse('((string,int,float)[])[]'))
+    print(parse_type_tree('((string,int,float)[])[]'))
