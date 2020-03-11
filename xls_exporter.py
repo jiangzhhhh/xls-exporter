@@ -133,6 +133,11 @@ class TypeTree(object):
             s = ''
             if tree.type == Types.embedded_array_t:
                 s += '%s[]' % (tree.elem_type)
+            elif tree.type == Types.tuple_t:
+                s += '('
+                for (k,m) in tree.members:
+                    s += '%s,' % (to_str_recursion(m, ident))
+                s += ')'
             else:
                 s += tree.type
             if tree.cursor:
@@ -142,11 +147,12 @@ class TypeTree(object):
                 s += 'u'
             if tree.is_required():
                 s += '!'
-            if ident > 0 or tree.members:
-                s += '\n'
-            for (k,m) in tree.members:
-                s += ' ' * (2*(ident+1))
-                s += '%s:%s' % (k, to_str_recursion(m, ident+1))
+            # if ident > 0 or tree.members:
+            #     s += '\n'
+            if tree.type != Types.tuple_t:
+                for (k,m) in tree.members:
+                    s += ' ' * (2*(ident+1))
+                    s += '%s:%s' % (k, to_str_recursion(m, ident+1))
             return s
         return to_str_recursion(self, 0)
 
