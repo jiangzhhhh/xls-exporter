@@ -1,27 +1,29 @@
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node
 
+# 需要兼容浮点写法
 int_grammar = Grammar(
 r'''
 int = sig? (hex / bin / dec)
-dec = ~r'[0-9]+'
 hex = '0x' ~r'[0-9a-fA-F]+'
 bin = '0b' ~r'[0-1]+'
+dec = ~r'[0-9]+'
 sig = '-' / '+'
 space = ~'\s*'
 ''')
 
 float_grammar = Grammar(
 r'''
-float = sig? (floor_pat / fact_pat)
-floor_pat = numberals fact?
-fact_pat = numberals? fact
+float = sig? (floor_float / fact_float)
+floor_float = numberals fact?
+fact_float = numberals? fact
 fact = '.' numberals
 numberals = ~r'[0-9]+'
 sig = '-' / '+'
 space = ~'\s*'
 ''')
 
+# 兼容浮点值
 bool_grammar = Grammar(
 r'''
 bool = true / false / '1' / '0'
@@ -47,14 +49,14 @@ def parse_int(text: str):
     integer = one_of_integer.children[0]
     expr_name = integer.expr_name
     val = None
-    if expr_name == 'dec':
-        val =  int(integer.text)
-    elif expr_name == 'hex':
+    if expr_name == 'hex':
         (prefix, hex) = integer.children
         val = int(hex.text, 16)
-    else:
+    elif expr_name == 'bin':
         (prefix, bin) = integer.children
         val = int(bin.text, 2)
+    elif expr_name == 'dec':
+        val =  int(integer.text)
     if optional_sig.children and optional_sig.children[0].text == '-':
         val = -val;
     return val
@@ -65,12 +67,12 @@ def parse_float(text: str):
     pat = one_of_pat.children[0]
     val = 0
     expr_name = pat.expr_name
-    if expr_name == 'fact_pat':
+    if expr_name == 'fact_float':
         (optional_floor, (dot, fact)) = pat.children
         if optional_floor.children:
             val = int(optional_floor.children[0].text)
         val += float('0.' + fact.text)
-    elif expr_name == 'floor_pat':
+    elif expr_name == 'floor_float':
         (floor, optional_fact) = pat.children
         val = int(floor.text)
         if optional_fact.children:
@@ -126,6 +128,9 @@ if __name__ == '__main__':
     print(parse_int('123'), 123)
     print(parse_int('-123'), -123)
     print(parse_int('+123'), 123)
+    print(parse_int('1.0'), 1)
+    print(parse_int('.1'), 0)
+    print(parse_int('0.2'), 0)
     # float
     print(parse_float('0.1'), 0.1)
     print(parse_float('-0.1'), -0.1)

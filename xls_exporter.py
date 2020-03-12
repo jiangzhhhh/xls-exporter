@@ -10,6 +10,7 @@ from exceptions import *
 from type_tree import TypeTree
 from value_tree import ValueTree
 from span import Span
+from utils import cell_to_text
 
 # 正则
 array_pat = re.compile(r'^(\w+)\[(\d+)\]$')
@@ -46,7 +47,8 @@ def read_sheets_from_xls(file_path):
                     if m:
                         settings.append(m.group(1))
                 continue
-            row_cells.append((row, sheet.row(row)))
+            cells = [cell_to_text(cell) for cell in sheet.row(row)]
+            row_cells.append((row, cells))
             reading_setting = False
         if len(row_cells) > 0:
             sheets.append((sheet.name, row_cells, settings))
@@ -89,9 +91,9 @@ def build_type_tree(sheet_name: str, sheet_cells):
     left_side_field = None
     for col in range(len(option_row_cells)):
         # 前三行约定为定义行
-        option_text = option_row_cells[col].value
-        type_text = type_row_cells[col].value
-        id_text = id_row_cells[col].value
+        option_text = option_row_cells[col]
+        type_text = type_row_cells[col]
+        id_text = id_row_cells[col]
 
         # option与类型同时为空的列约定注释列，不参导出
         if option_text in empty_values and type_text in empty_values:
@@ -123,7 +125,7 @@ def build_type_tree(sheet_name: str, sheet_cells):
             if left_brother.span:
                 left_brother_col = left_brother.span.col
                 if left_brother != left_side_field:
-                    left_side_path = id_row_cells[left_brother_col].value
+                    left_side_path = id_row_cells[left_brother_col]
                     raise StructureError('格式错误', '结构体或数组成员必须连续定义在一起,成员%s必须紧跟在%s右侧' % (id_text, left_side_path), id_span)
         left_side_field = field_node
         parent_node.add_member(field_name, field_node);
@@ -210,7 +212,7 @@ def check_constraint_cols(type_trees, sheets):
             unique_col = get_member_by_path(type_tree, path)
             col = unique_col.span.col
             for (row, row_data) in row_cells[3:]:
-                value = row_data[col].value
+                value = row_data[col]
                 if value in empty_values:
                     continue
                 if value in unique_set:
@@ -228,7 +230,7 @@ def check_constraint_cols(type_trees, sheets):
             requried_col = get_member_by_path(type_tree, path)
             col = requried_col.span.col
             for (row, row_data) in row_cells[3:]:
-                value = row_data[col].value
+                value = row_data[col]
                 if value in empty_values:
                     col_path = '.'.join([str(x) for x in path])
                     raise EvalError('数据缺失', '关于requried列(%s)的数据缺失' % (col_path), sheet_name, row, col)

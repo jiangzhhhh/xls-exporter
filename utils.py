@@ -1,3 +1,8 @@
+import xlrd
+from xlrd.sheet import Cell
+import math
+
+
 # 将整数转换为excel的列
 def to_xls_col(num: int):
     if num < 0:
@@ -40,3 +45,23 @@ def add_quote(text: str):
 
 def to_int(v):
     return int(float(v))
+
+
+def cell_to_text(cell: Cell):
+    ctype = cell.ctype
+    value = cell.value
+    if ctype in (xlrd.XL_CELL_BLANK, xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_ERROR):
+        return ''
+    elif ctype == xlrd.XL_CELL_BOOLEAN:
+        # int; 1 means TRUE, 0 means FALSE
+        return str(value)
+    elif ctype in (xlrd.XL_CELL_NUMBER, xlrd.XL_CELL_DATE):
+        # float
+        integer = math.floor(value)
+        fact = value - integer
+        if fact == 0:
+            return str(integer)
+        else:
+            return str(value)
+    elif ctype == xlrd.XL_CELL_TEXT:
+        return value
