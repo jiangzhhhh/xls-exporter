@@ -4,7 +4,6 @@ from xls_exporter import TypeTree
 
 grammar = Grammar(
 '''
-trim_space = space type space
 type = array / tuple / base_type
 array = (tuple / base_type) '[]'+
 base_type = 'int' / 'bool' / 'float' / 'string'

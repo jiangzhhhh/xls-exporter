@@ -1,8 +1,8 @@
 from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node
 
 int_grammar = Grammar(
 r'''
-trim_space = space int space
 int = sig? (hex / bin / dec)
 dec = ~r'[0-9]+'
 hex = '0x' ~r'[0-9a-fA-F]+'
@@ -13,7 +13,6 @@ space = ~'\s*'
 
 float_grammar = Grammar(
 r'''
-trim_space = space float space
 float = sig? (floor_pat / fact_pat)
 floor_pat = numberals fact?
 fact_pat = numberals? fact
@@ -25,7 +24,6 @@ space = ~'\s*'
 
 bool_grammar = Grammar(
 r'''
-trim_space = space bool space
 bool = true / false / '1' / '0'
 true = ('T' / 't') ('R' / 'r') ('U' / 'u') ('E' / 'e')
 false = ('F' / 'f') ('A' / 'a') ('L' / 'l') ('S' / 's') ('E' / 'e')
@@ -33,9 +31,19 @@ space = ~'\s*'
 '''
 )
 
+array_grammar = Grammar(
+r'''
+array = text more_text*
+text = escaping_comma / ~'[^,]*'
+more_text = ',' text
+space = ~'\s*'
+escaping_comma = '\\,'
+'''
+)
+
 def parse_int(text: str):
-    (_, int_syntax, _) = int_grammar.parse(text)
-    (optional_sig, one_of_integer) = int_syntax.children
+    striped = text.strip()
+    (optional_sig, one_of_integer) = int_grammar.parse(striped)
     integer = one_of_integer.children[0]
     expr_name = integer.expr_name
     val = None
@@ -52,8 +60,8 @@ def parse_int(text: str):
     return val
 
 def parse_float(text: str):
-    (_, float_syntax, _) = float_grammar.parse(text)
-    (optional_sig, one_of_pat) = float_syntax
+    striped = text.strip()
+    (optional_sig, one_of_pat) = float_grammar.parse(striped)
     pat = one_of_pat.children[0]
     val = 0
     expr_name = pat.expr_name
@@ -73,15 +81,43 @@ def parse_float(text: str):
     return val
 
 def parse_bool(text: str):
-    (_, bool_syntax, _) = bool_grammar.parse(text)
-    text = bool_syntax.text.lower()
-    if text in ('true', '1'):
+    striped = text.strip()
+    content = bool_grammar.parse(striped).text.lower()
+    if content in ('true', '1'):
         return True
-    elif text in ('false', '0'):
+    elif content in ('false', '0'):
         return False
 
 def parse_string(text: str):
     return text
+
+def _parse_array_text_node(node: Node):
+    body = node.children[0]
+    if body.expr_name == 'escaping_comma':
+        return ','
+    else:
+        return body.text
+
+def _parse_array_node(node: Node):
+    (text_node, maybe_many_more_text) = node
+    val = [_parse_array_text_node(text_node)]
+    for child in maybe_many_more_text.children:
+        (_, more_text_node) = child
+        val.append(_parse_array_text_node(more_text_node))
+    return val
+
+def parse_array(text: str):
+    striped = text.strip()
+    if striped[0] == '[' and striped[-1] == ']':
+        striped = striped[1:-1]
+    array_node = array_grammar.parse(striped)
+    return _parse_array_node(array_node)
+
+def parse_tuple(text: str):
+    striped = text.strip()
+    if striped[0] == '(' and striped[-1] == ')':
+        striped = striped[1:-1]
+    return tuple(parse_array(striped))
 
 if __name__ == '__main__':
     # int
@@ -105,5 +141,10 @@ if __name__ == '__main__':
     print(parse_bool('0'), False)
     # string
     print(parse_string(r'ab"c\tdef\gh'), r'ab"c\tdef\gh')
-
+    # array
+    print(parse_array('123,\,,2,3,,abc,()'))
+    print(parse_array('[1,2,  3]'))
+    # tuple
+    print(parse_tuple('(1,),,3)'))
+    print(parse_tuple('a,b,c()'))
 
