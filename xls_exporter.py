@@ -87,20 +87,20 @@ default_option_pat = re.compile(r'.*def\s*:\s*(.+)$')
 setting_pat = re.compile(r'//\$(.+)$')
 
 class TypeTree(object):
-    def __init__(self, type):
+    def __init__(self, type: str):
         assert type,type
         self.type = type
         self.members = []
-        self.cursor = None
+        self.span = None
         self.unique = False
         self.required = False
         self.default = None
         self.elem_type = None # only for embedded array
 
-    def set_cursor(self, sheet_name: str, row: int, col: int):
-        self.cursor = (sheet_name, row, col)
+    def set_span(self, sheet_name: str, row: int, col: int):
+        self.span = (sheet_name, row, col)
         if self.elem_type:
-            self.elem_type.cursor = self.cursor
+            self.elem_type.span = self.span
 
     def add_member(self, key: [str, int], member: 'TypeTree'):
         self.members.append((key,member))
@@ -129,32 +129,29 @@ class TypeTree(object):
         return self.required
 
     def __str__(self):
-        def to_str_recursion(tree, ident):
+        def to_str_recursion(tree: 'TypeTree'):
             s = ''
             if tree.type == Types.embedded_array_t:
-                s += '%s[]' % (tree.elem_type)
+                s += '%s[]' % (str(tree.elem_type))
             elif tree.type == Types.tuple_t:
-                s += '('
-                for (k,m) in tree.members:
-                    s += '%s,' % (to_str_recursion(m, ident))
-                s += ')'
-            else:
+                s += '(%s)' % (','.join([to_str_recursion(m) for (_,m) in tree.members]))
+            elif tree.type in value_types:
                 s += tree.type
-            if tree.cursor:
-                (sheet, _, col) = tree.cursor
+            if tree.span:
+                (sheet, _, col) = tree.span
                 s += '(%s:%s)' % (sheet, to_xls_col(col))
             if tree.is_unique():
                 s += 'u'
             if tree.is_required():
                 s += '!'
-            # if ident > 0 or tree.members:
-            #     s += '\n'
-            if tree.type != Types.tuple_t:
-                for (k,m) in tree.members:
-                    s += ' ' * (2*(ident+1))
-                    s += '%s:%s' % (k, to_str_recursion(m, ident+1))
+
+            if tree.type == Types.struct_t or tree.type == Types.dict_t:
+                s += '{%s}' % (','.join([str(k)+':'+to_str_recursion(m) for (k,m) in tree.members]))
+            elif tree.type == Types.array_t:
+                s += '[%s]' % (','.join([to_str_recursion(m) for (_, m) in tree.members]))
+
             return s
-        return to_str_recursion(self, 0)
+        return to_str_recursion(self)
 
 class Formatter(object):
     def as_any(self, value_tree: 'ValueTree', ident: int):
@@ -232,7 +229,7 @@ class ValueTree(object):
         self.members.append((key, member))
 
     def eval_value(self, row: int, text: str):
-        (sheet_name, _, col) = self.type_tree.cursor
+        (sheet_name, _, col) = self.type_tree.span
         # 如果有填写了空值，且存在默认值，则替换之
         if self.type_tree.default is not None and (text in empty_values):
             text = self.type_tree.default
@@ -312,7 +309,7 @@ class ValueTree(object):
             for (_,member) in self.members:
                 member.eval(row, row_data)
         else:
-            (sheet_name, _, col) = self.type_tree.cursor
+            (sheet_name, _, col) = self.type_tree.span
             text = row_data[col].value
             self.eval_value(row, text)
 
@@ -406,7 +403,7 @@ def read_sheets_from_xls(file_path):
             sheets.append((sheet.name, row_cells, settings))
     return sheets
 
-def parse_type(text, cursor):
+def parse_type(text, span):
     type_tree = None
     if text in value_types:
         # 基本类型
@@ -414,7 +411,7 @@ def parse_type(text, cursor):
     if text.endswith('[]'):
         # 内嵌数组
         type_tree = TypeTree(Types.embedded_array_t)
-        elem_type = parse_type(text[:-2], cursor)
+        elem_type = parse_type(text[:-2], span)
         if elem_type is None:
             return None
         type_tree.set_embedded_type(elem_type)
@@ -424,12 +421,12 @@ def parse_type(text, cursor):
         terms = text[1:-1].split(',')
         for i in range(len(terms)):
             term = terms[i].strip()
-            term_type = parse_type(term, cursor)
+            term_type = parse_type(term, span)
             if term_type is None:
                 return None
             type_tree.add_member(i, term_type)
     if type_tree:
-        type_tree.set_cursor(*cursor)
+        type_tree.set_span(*span)
     return type_tree
 
 # 输入sheet构建类型树
@@ -476,7 +473,6 @@ def build_type_tree(sheet_name: str, sheet_cells):
         if field_member is None:
             # 声明了未知数据类型
             raise StructureError('类型错误', '声明了未知数据类型%s' % (decl_type), sheet_name, type_row, col)
-        # field_member.set_cursor(sheet_name, type_row, col)
         field_member.set_option(option)
 
         # 约束冲突
@@ -490,8 +486,8 @@ def build_type_tree(sheet_name: str, sheet_cells):
         # 检查是否连续定义在一块
         if len(parent.members) > 0:
             (_, left_brother) = parent.members[-1]
-            if left_brother.cursor:
-                (_, _, left_brother_col) = left_brother.cursor
+            if left_brother.span:
+                (_, _, left_brother_col) = left_brother.span
                 if left_brother != left_side_field:
                     left_side_path = id_row_cells[left_brother_col].value
                     raise StructureError('格式错误', '结构体或数组成员必须连续定义在一起,成员%s必须紧跟在%s右侧' % (path, left_side_path), sheet_name, id_row, col)
@@ -501,12 +497,12 @@ def build_type_tree(sheet_name: str, sheet_cells):
     return type_tree
 
 # 检查类型树之间是否存在结构冲突
-def check_type_conflicet(lhs_key, lhs, rhs_key, rhs):
+def check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
     # 宽度优先遍历
     def bfs_walk(lhs_key, lhs, rhs_key, rhs):
         (rhs_sheet, rhs_row, rhs_col) = ('none', -1, -1)
-        if rhs.cursor:
-            (rhs_sheet, rhs_row, rhs_col) = rhs.cursor
+        if rhs.span:
+            (rhs_sheet, rhs_row, rhs_col) = rhs.span
         # 检查不同类型树之间的同项类型是否一致
         if lhs.type != rhs.type:
             raise StructureError('类型冲突', '项:%s类型(%s)跟项:%s类型(%s)不同' % (lhs_key, lhs.type, rhs_key, rhs.type),
@@ -575,7 +571,7 @@ def check_constraint_cols(type_trees, sheets):
             i += 1
             # 根据path搜索到type_tree节点
             unique_col = get_member_by_path(type_tree, path)
-            (_, _, col) = unique_col.cursor
+            (_, _, col) = unique_col.span
             for (row, row_data) in row_cells[3:]:
                 value = row_data[col].value
                 if value in empty_values:
@@ -593,7 +589,7 @@ def check_constraint_cols(type_trees, sheets):
             i += 1
             # 根据path搜索到type_tree节点
             requried_col = get_member_by_path(type_tree, path)
-            (_, _, col) = requried_col.cursor
+            (_, _, col) = requried_col.span
             for (row, row_data) in row_cells[3:]:
                 value = row_data[col].value
                 if value in empty_values:
@@ -654,7 +650,7 @@ def parse(file_path, verbose=True):
             (_, key_type) = type_tree.members[0]
 
             if key_type.type not in (Types.int_t, Types.string_t):
-                (_, _, col) = key_type.cursor
+                (_, _, col) = key_type.span
                 (type_row, _) = row_cells[1]
                 raise StructureError('主键类型错误', '主键类型只能是整型或者字符串', sheet_name, type_row, 0)
 
@@ -683,7 +679,4 @@ def error(msg):
     sys.stderr.write(msg + '\n')
 
 if __name__ == '__main__':
-    try:
-        print(parse('example/example.xlsx', verbose=True))
-    except Exception as e:
-        print(e.message)
+    print(parse('example/example.xlsx', verbose=True))
