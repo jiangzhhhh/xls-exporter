@@ -1,6 +1,7 @@
 from type_define import Types
 from utils import add_quote
 
+
 class Formatter(object):
     def as_any(self, value_tree: 'ValueTree', ident: int):
         type = value_tree.type_tree.type
@@ -22,46 +23,54 @@ class Formatter(object):
             return self.as_bool(value_tree, ident)
         elif type == Types.string_t:
             return self.as_string(value_tree, ident)
+
     def as_struct(self, value_tree: 'ValueTree', ident: int):
         s = '{'
         if ident == 0: s += '\n'
-        for (k,m) in value_tree.members:
-            s += '%s:%s,' % (k, self.as_any(m, ident+1))
+        for (k, m) in value_tree.members:
+            s += '%s:%s,' % (k, self.as_any(m, ident + 1))
             if ident == 0: s += '\n'
         s += '}'
         return s
+
     def as_array(self, value_tree: 'ValueTree', ident: int):
         s = '['
         if ident == 0: s += '\n'
-        for (k,m) in value_tree.members:
-            s += '%s,' % (self.as_any(m, ident+1))
+        for (k, m) in value_tree.members:
+            s += '%s,' % (self.as_any(m, ident + 1))
             if ident == 0: s += '\n'
         s += ']'
         return s
+
     def as_dict(self, value_tree: 'ValueTree', ident: int):
         s = '{'
         if ident == 0: s += '\n'
-        for (k,m) in value_tree.members:
-            s += '%s:%s,' % (k, self.as_any(m, ident+1))
+        for (k, m) in value_tree.members:
+            s += '%s:%s,' % (k, self.as_any(m, ident + 1))
             if ident == 0: s += '\n'
         s += '}'
         return s
+
     def as_tuple(self, value_tree: 'ValueTree', ident: int):
         s = '('
         if ident == 0: s += '\n'
-        for (k,m) in value_tree.members:
-            s += '%s,' % (self.as_any(m, ident+1))
+        for (k, m) in value_tree.members:
+            s += '%s,' % (self.as_any(m, ident + 1))
             if ident == 0: s += '\n'
         s += ')'
         return s
+
     def as_int(self, value_tree: 'ValueTree', ident: int):
         return str(value_tree.value)
+
     def as_float(self, value_tree: 'ValueTree', ident: int):
         return str(value_tree.value)
+
     def as_bool(self, value_tree: 'ValueTree', ident: int):
         return str(value_tree.value)
+
     def as_string(self, value_tree: 'ValueTree', ident: int):
         return add_quote(value_tree.value)
+
     def as_nil(self, value_tree: 'ValueTree', ident: int):
         return 'None'
-

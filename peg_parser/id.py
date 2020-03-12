@@ -2,6 +2,7 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node
 from type_tree import TypeTree
 from type_define import Types
+from span import Span
 
 grammar = Grammar(
 r'''
@@ -15,35 +16,44 @@ space = ~'\s*'
 '''
 )
 
-def _get_or_create_member(key: (int,str), parent: TypeTree):
-    node = parent.get_member(key)
-    if node is None:
-        node_type = Types.array_t if key is int else Types.struct_t
-        node = TypeTree(node_type)
-        parent.add_member(key, node)
-    return node
+def _get_key(node: Node):
+    expr_name = node.expr_name
+    if expr_name == 'struct_visit':
+        (_, _, _, id) = node.children
+        return id.text
+    elif expr_name == 'array_visit':
+        (_, _, _, numberal, _, _) = node.children
+        return int(numberal.text)
 
-def _build_id_node(grammar_tree: Node, parent: TypeTree):
-    (id, maybe_many_expr_tail) = grammar_tree
-    parent = _get_or_create_member(id.text, parent)
-    for child in maybe_many_expr_tail.children:
-        pat = child.children[0]
-        expr_name = pat.expr_name
-        key = None
-        if expr_name == 'struct_visit':
-            (_, _, _, id) = pat.children
-            key = id.text
-        elif expr_name == 'array_visit':
-            (_, _, _, numberal, _, _) = pat.children
-            key = int(numberal.text)
-        parent = _get_or_create_member(key, parent)
-    return parent
+def _get_or_create_parent(node: Node, parent_key: str, grandpa: TypeTree, span: Span):
+    key = _get_key(node)
+    parent = grandpa.get_member(parent_key)
+    if parent is None:
+        parent_type = Types.array_t if isinstance(key, int) else Types.struct_t
+        parent = TypeTree(parent_type)
+        parent.set_span(span)
+        grandpa.add_member(parent_key, parent)
+    return (parent, key)
 
-def parse_id_node(text: str, parent: TypeTree):
-    grammar_node = grammar.parse(text)
-    return _build_id_node(grammar_node, parent)
+# 返回父节点和key
+def get_or_create_parent(id_text: str, root: TypeTree, span: Span):
+    id_grammar_tree = grammar.parse(id_text)
+    (id, maybe_many_expr_tail) = id_grammar_tree
+    if maybe_many_expr_tail.children:
+        parent_key = id.text
+        grandpa = root
+        for child in maybe_many_expr_tail.children[:-1]:
+            node = child.children[0]
+            (parent, parent_key) = _get_or_create_parent(node, parent_key, grandpa, span)
+            grandpa = parent
+        last_node = maybe_many_expr_tail.children[-1].children[0]
+        (parent, parent_key) = _get_or_create_parent(last_node, parent_key, grandpa, span)
+        return (parent, parent_key)
+    else:
+        return (root, id.text)
 
 if __name__ == '__main__':
     root = TypeTree(Types.struct_t)
-    parse_id_node('1skills[1][2].hp.percent', root)
+    span = Span("sheet", 0, 0)
+    get_or_create_parent('skills[1].id.percent', root, span)
     print(root)

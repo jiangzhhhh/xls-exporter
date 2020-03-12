@@ -10,6 +10,7 @@ class Types(object):
     dict_t = 'dict'
     tuple_t = 'tuple'
 
+
 # 直接求值类型
-value_types = (Types.int_t,Types.float_t,Types.bool_t,Types.string_t)
+value_types = (Types.int_t, Types.float_t, Types.bool_t, Types.string_t)
 empty_values = ('', None)
