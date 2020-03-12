@@ -1,7 +1,7 @@
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node
-from xls_exporter import TypeTree
-from xls_exporter import Types
+from type_tree import TypeTree
+from type_define import Types
 
 grammar = Grammar(
 r'''
@@ -23,7 +23,7 @@ def _get_or_create_member(key: (int,str), parent: TypeTree):
         parent.add_member(key, node)
     return node
 
-def build_id_node(grammar_tree: Node, parent: TypeTree):
+def _build_id_node(grammar_tree: Node, parent: TypeTree):
     (id, maybe_many_expr_tail) = grammar_tree
     parent = _get_or_create_member(id.text, parent)
     for child in maybe_many_expr_tail.children:
@@ -39,8 +39,11 @@ def build_id_node(grammar_tree: Node, parent: TypeTree):
         parent = _get_or_create_member(key, parent)
     return parent
 
+def parse_id_node(text: str, parent: TypeTree):
+    grammar_node = grammar.parse(text)
+    return _build_id_node(grammar_node, parent)
+
 if __name__ == '__main__':
     root = TypeTree(Types.struct_t)
-    node = grammar.parse('1skills[1][2].hp.percent')
-    build_id_node(node, root)
+    parse_id_node('1skills[1][2].hp.percent', root)
     print(root)
