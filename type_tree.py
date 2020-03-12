@@ -59,12 +59,12 @@ class TypeTree(object):
                 s += '(%s)' % (','.join([to_str_recursion(m) for (_, m) in tree.members]))
             elif tree.type in value_types:
                 s += tree.type
-            if tree.span:
-                s += '(%s:%s)' % (tree.span.sheet, tree.span.xls_col)
-            if tree.is_unique():
-                s += 'u'
-            if tree.is_required():
-                s += '!'
+            # if tree.span:
+            #     s += '(%s:%s)' % (tree.span.sheet, tree.span.xls_col)
+            # if tree.is_unique():
+            #     s += 'u'
+            # if tree.is_required():
+            #     s += '!'
 
             if tree.type == Types.struct_t or tree.type == Types.dict_t:
                 s += '{%s}' % (','.join([str(k) + ':' + to_str_recursion(m) for (k, m) in tree.members]))
