@@ -3,6 +3,7 @@ from exporter.type_define import Types, value_types, empty_values
 from exporter import exceptions
 from exporter.formatter import Formatter
 from exporter.peg_parser import value as value_parser
+import parsimonious
 
 
 class ValueTree(object):
@@ -23,7 +24,7 @@ class ValueTree(object):
             item_value = ValueTree(elem_type)
             pos = item_value._eval_value(row, in_out_text)
             self.add_member(index, item_value)
-            return (in_out_text[pos:].lstrip(), index + 1)
+            return in_out_text[pos:].lstrip(), index + 1
 
         index = 0
         (remain_text, index) = loop_body(text, index)
@@ -74,8 +75,8 @@ class ValueTree(object):
                 pos = self._eval_array(row, text)
             elif self.type_tree.type == Types.tuple_t:  # 元组
                 pos = self._eval_tuple(row, text)
-        except ValueError:
-            raise exceptions.EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (self.type_tree.type, text), span)
+        except parsimonious.exceptions.ParseError:
+            raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (self.type_tree.type, text), span)
         if def_text:
             pos = 0
         return pos
@@ -90,7 +91,7 @@ class ValueTree(object):
             text = row_data[span.col]
             pos = self._eval_value(row, text)
             if pos < len(text):
-                raise exceptions.EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (str(self.type_tree), text), span)
+                raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (str(self.type_tree), text), span)
 
     def __str__(self):
         return self.tostring(formatter=Formatter())

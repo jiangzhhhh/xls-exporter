@@ -88,4 +88,5 @@ class LuaFormatter(Formatter):
 
 
 if __name__ == '__main__':
-    sys.exit(entry.main(sys.argv, 'lua', LuaFormatter()))
+    # sys.exit(entry.main(sys.argv, 'lua', LuaFormatter()))
+    sys.exit(entry.main(['', 'example/example.xlsx'], 'lua', LuaFormatter()))

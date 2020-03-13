@@ -1,4 +1,5 @@
 from parsimonious.grammar import Grammar
+import parsimonious
 
 int_grammar = Grammar(
     r'''
@@ -47,7 +48,7 @@ string_grammar = Grammar(
 )
 
 
-def match_int(text: str):
+def match_int(text: str) -> (int, int):
     result = int_grammar.match(text)
     (_, optional_sig, one_of_integer) = result
     integer = one_of_integer.children[0]
@@ -62,11 +63,11 @@ def match_int(text: str):
     elif expr_name == 'dec':
         val = int(integer.text)
     if optional_sig.children and optional_sig.children[0].text == '-':
-        val = -val;
+        val = -val
     return val, (result.end - result.start)
 
 
-def match_float(text: str):
+def match_float(text: str) -> (float, int):
     result = float_grammar.match(text)
     (_, optional_sig, one_of_pat) = result
     pat = one_of_pat.children[0]
@@ -84,11 +85,11 @@ def match_float(text: str):
             (dot, fact) = optional_fact.children[0]
             val += float('0.' + fact.text)
     if optional_sig.children and optional_sig.children[0].text == '-':
-        val = -val;
+        val = -val
     return val, (result.end - result.start)
 
 
-def match_bool(text: str):
+def match_bool(text: str) -> (bool, int):
     result = bool_grammar.match(text)
     (_, one_of_word) = result
     content = one_of_word.text.lower()
@@ -98,7 +99,7 @@ def match_bool(text: str):
         return False, (result.end - result.start)
 
 
-def match_string(text: str):
+def match_string(text: str) -> (str, int):
     try:
         result = string_grammar.match(text)
         (_, _, one_of_style, _, _) = result.children[0]
@@ -112,7 +113,7 @@ def match_string(text: str):
             else:
                 s += x.text
         return s, result.end - result.start
-    except:
+    except parsimonious.exceptions.ParseError:
         return text, len(text)
 
 

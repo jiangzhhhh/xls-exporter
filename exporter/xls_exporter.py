@@ -2,7 +2,6 @@
 import sys
 import xlrd
 import re
-from six import string_types
 from exporter.peg_parser.id import get_or_create_parent
 from exporter.peg_parser.type import parse_type_tree
 from exporter.type_define import Types, empty_values
@@ -40,7 +39,7 @@ def _read_sheets_from_xls(file_path):
                 continue
             text = sheet.cell_value(row, 0)
             # 过滤注释行
-            if isinstance(text, string_types) and text.startswith('//'):
+            if isinstance(text, str) and text.startswith('//'):
                 if reading_setting:
                     m = setting_pat.match(text)
                     if m:

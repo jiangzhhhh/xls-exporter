@@ -61,7 +61,7 @@ def _build_type(grammar_tree: Node, span: Span):
         return _build_type(grammar_tree.children[0], span)
 
 
-def parse_type_tree(text: str, span: Span):
+def parse_type_tree(text: str, span: Span) -> TypeTree:
     grammar_tree = grammar.parse(text)
     return _build_type(grammar_tree, span)
 

@@ -5,16 +5,17 @@ from exporter.type_define import Types
 from exporter.span import Span
 
 grammar = Grammar(
-r'''
-expr = id expr_tail*
-expr_tail = (struct_visit / array_visit)
-struct_visit = space '.' space id
-array_visit = space '[' space numeral space ']'
-id = ~'[^\[\.]+'
-numeral = ~'[0-9]+'
-space = ~'\s*'
-'''
+    r'''
+    expr = id expr_tail*
+    expr_tail = (struct_visit / array_visit)
+    struct_visit = space '.' space id
+    array_visit = space '[' space numeral space ']'
+    id = ~'[^\[\.]+'
+    numeral = ~'[0-9]+'
+    space = ~'\s*'
+    '''
 )
+
 
 def _get_key(node: Node):
     expr_name = node.expr_name
@@ -22,8 +23,9 @@ def _get_key(node: Node):
         (_, _, _, id) = node.children
         return id.text
     elif expr_name == 'array_visit':
-        (_, _, _, numberal, _, _) = node.children
-        return int(numberal.text)
+        (_, _, _, numeral, _, _) = node.children
+        return int(numeral.text)
+
 
 def _get_or_create_parent(node: Node, parent_key: str, grandpa: TypeTree, span: Span):
     key = _get_key(node)
@@ -33,7 +35,8 @@ def _get_or_create_parent(node: Node, parent_key: str, grandpa: TypeTree, span: 
         parent = TypeTree(parent_type)
         parent.set_span(span)
         grandpa.add_member(parent_key, parent)
-    return (parent, key)
+    return parent, key
+
 
 # 返回父节点和key
 def get_or_create_parent(id_text: str, root: TypeTree, span: Span):
@@ -48,9 +51,10 @@ def get_or_create_parent(id_text: str, root: TypeTree, span: Span):
             grandpa = parent
         last_node = maybe_many_expr_tail.children[-1].children[0]
         (parent, parent_key) = _get_or_create_parent(last_node, parent_key, grandpa, span)
-        return (parent, parent_key)
+        return parent, parent_key
     else:
-        return (root, id.text)
+        return root, id.text
+
 
 if __name__ == '__main__':
     root = TypeTree(Types.struct_t)
