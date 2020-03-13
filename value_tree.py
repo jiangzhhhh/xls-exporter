@@ -64,9 +64,11 @@ class ValueTree(object):
                     slice = remain_text[0:comma_pos]
                     pos = m.eval_value(row, slice)
                     remain_text = remain_text[pos:]
+                remain_text = remain_text.lstrip()
                 if remain_text[0] != ')':
                     return 0
                 remain_text = remain_text.lstrip(')')
+                remain_text = remain_text.lstrip()
                 pos = len(text) - len(remain_text)
         except ValueError:
             raise EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (self.type_tree.type, text), span)
