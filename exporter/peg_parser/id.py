@@ -9,9 +9,9 @@ r'''
 expr = id expr_tail*
 expr_tail = (struct_visit / array_visit)
 struct_visit = space '.' space id
-array_visit = space '[' space numberal space ']'
+array_visit = space '[' space numeral space ']'
 id = ~'[^\[\.]+'
-numberal = ~'[0-9]+'
+numeral = ~'[0-9]+'
 space = ~'\s*'
 '''
 )

@@ -4,6 +4,7 @@ import codecs
 from exporter import xls_exporter
 from exporter.xls_exporter import error
 from exporter.formatter import Formatter
+from exporter import exceptions
 
 
 def main(sys_argv, file_extension: str, formatter: Formatter):
@@ -27,7 +28,7 @@ def main(sys_argv, file_extension: str, formatter: Formatter):
         input_file = argv[1]
         try:
             xls_exporter.parse(input_file, verbose=True)
-        except xls_exporter.ParseError as e:
+        except exceptions.ParseError as e:
             error(e.message)
             return 3
     else:
@@ -45,7 +46,7 @@ def main(sys_argv, file_extension: str, formatter: Formatter):
             with codecs.open(output_file, "w+", "utf-8") as f:
                 f.write(out)
             print('write file:%s' % os.path.abspath(output_file))
-        except (xls_exporter.ParseError) as e:
+        except exceptions.ParseError as e:
             error(e.message)
             return 3
     return 0

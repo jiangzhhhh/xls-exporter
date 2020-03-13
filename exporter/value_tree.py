@@ -1,6 +1,6 @@
 from exporter.type_tree import TypeTree
 from exporter.type_define import Types, value_types, empty_values
-from exporter.exceptions import EvalError
+from exporter import exceptions
 from exporter.formatter import Formatter
 from exporter.peg_parser import value as value_parser
 
@@ -75,7 +75,7 @@ class ValueTree(object):
             elif self.type_tree.type == Types.tuple_t:  # 元组
                 pos = self._eval_tuple(row, text)
         except ValueError:
-            raise EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (self.type_tree.type, text), span)
+            raise exceptions.EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (self.type_tree.type, text), span)
         if def_text:
             pos = 0
         return pos
@@ -90,7 +90,7 @@ class ValueTree(object):
             text = row_data[span.col]
             pos = self._eval_value(row, text)
             if pos < len(text):
-                raise EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (str(self.type_tree), text), span)
+                raise exceptions.EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (str(self.type_tree), text), span)
 
     def __str__(self):
         return self.tostring(formatter=Formatter())

@@ -5,7 +5,7 @@ from exporter.span import Span
 from exporter.type_define import Types
 
 grammar = Grammar(
-    '''
+    r'''
     type = array / tuple / base_type
     array = (tuple / base_type) '[]'+
     base_type = '%(INT)s' / '%(BOOL)s' / '%(FLOAT)s' / '%(STRING)s'

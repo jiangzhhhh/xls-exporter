@@ -5,8 +5,8 @@ import re
 from six import string_types
 from exporter.peg_parser.id import get_or_create_parent
 from exporter.peg_parser.type import parse_type_tree
-from exporter.type_define import Types, value_types, empty_values
-from exporter.exceptions import *
+from exporter.type_define import Types, empty_values
+from exporter import exceptions
 from exporter.type_tree import TypeTree
 from exporter.value_tree import ValueTree
 from exporter.span import Span
@@ -23,7 +23,7 @@ def _read_sheets_from_xls(file_path):
         workbook = xlrd.open_workbook(file_path)
     # 将xlrd的异常转化为自定义异常向上传播
     except xlrd.biffh.XLRDError as e:
-        raise FileFormatError('文件格式错误', str(e))
+        raise exceptions.FileFormatError('文件格式错误', str(e))
     sheets = []
     reading_setting = True
     for sheet in workbook.sheets():
@@ -79,17 +79,17 @@ def _build_type_tree(sheet_name: str, sheet_cells):
         field_node = parse_type_tree(type_text, type_span)
         if field_node is None:
             # 声明了未知数据类型
-            raise StructureError('类型错误', '声明了未知数据类型%s' % type_text, type_span)
+            raise exceptions.StructureError('类型错误', '声明了未知数据类型%s' % type_text, type_span)
         field_node.set_span(type_span)
         field_node.set_option(option_text)
 
         # 约束冲突
         if field_node.default is not None and field_node.unique:
-            raise StructureError('约束冲突', '列约束不能同时拥有unique和def,%s' % id_text, id_span)
+            raise exceptions.StructureError('约束冲突', '列约束不能同时拥有unique和def,%s' % id_text, id_span)
 
         # 检查重复定义域
         if parent_node.get_member(field_name) is not None:
-            raise StructureError('重复定义', '重复定义了成员%s' % id_text, Span(sheet_name, id_row, col))
+            raise exceptions.StructureError('重复定义', '重复定义了成员%s' % id_text, Span(sheet_name, id_row, col))
 
         # 检查是否连续定义在一块
         if parent_node != root and len(parent_node.members) > 0:
@@ -98,7 +98,9 @@ def _build_type_tree(sheet_name: str, sheet_cells):
                 left_brother_col = left_brother.span.col
                 if left_brother != left_side_field:
                     left_side_path = id_row_cells[left_brother_col]
-                    raise StructureError('格式错误', '结构体或数组成员必须连续定义在一起,成员%s必须紧跟在%s右侧' % (id_text, left_side_path), id_span)
+                    raise exceptions.StructureError('格式错误',
+                                                    '结构体或数组成员必须连续定义在一起,成员%s必须紧跟在%s右侧' % (id_text, left_side_path),
+                                                    id_span)
         left_side_field = field_node
         parent_node.add_member(field_name, field_node)
     # todo:还需要检查数组元素是否同构???
@@ -112,17 +114,17 @@ def _check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
         span = rhs.span or Span('none', 0, 0)
         # 检查不同类型树之间的同项类型是否一致
         if lhs.type != rhs.type:
-            raise StructureError('类型冲突', '项:%s类型(%s)跟项:%s类型(%s)不同' % (lhs_key, lhs.type, rhs_key, rhs.type),
-                                 span)
+            raise exceptions.StructureError('类型冲突', '项:%s类型(%s)跟项:%s类型(%s)不同' % (lhs_key, lhs.type, rhs_key, rhs.type),
+                                            span)
 
         # 检查约束冲突
         if lhs.is_unique() and not rhs.is_unique():
-            raise StructureError('约束冲突', '项:%s(unique)跟项:%s约束类型不同' % (lhs_key, rhs_key),
-                                 span)
+            raise exceptions.StructureError('约束冲突', '项:%s(unique)跟项:%s约束类型不同' % (lhs_key, rhs_key),
+                                            span)
 
         if lhs.is_required() and not rhs.is_required():
-            raise StructureError('约束冲突', '项:%s(required)跟项:%s约束类型不同' % (lhs_key, rhs_key),
-                                 span)
+            raise exceptions.StructureError('约束冲突', '项:%s(required)跟项:%s约束类型不同' % (lhs_key, rhs_key),
+                                            span)
 
         for (k, m1) in lhs.members:
             m2 = rhs.get_member(k)
@@ -130,12 +132,12 @@ def _check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
                 bfs_walk('%s.%s' % (lhs_key, k), m1, '%s.%s' % (rhs_key, k), m2)
             elif m1.is_unique():
                 # 如果某一列定义为unique，则其余sheet表也必须定义该列
-                raise StructureError('约束冲突', '%s缺少unique项:%s' % (rhs_key, k),
-                                     span)
+                raise exceptions.StructureError('约束冲突', '%s缺少unique项:%s' % (rhs_key, k),
+                                                span)
             elif m1.is_required():
                 # 如果某一列定义为required，则其余sheet表也必须定义该列
-                raise StructureError('约束冲突', '%s缺少required项:%s' % (rhs_key, k),
-                                     span)
+                raise exceptions.StructureError('约束冲突', '%s缺少required项:%s' % (rhs_key, k),
+                                                span)
 
     bfs_walk(lhs_key, lhs, rhs_key, rhs)
 
@@ -187,7 +189,8 @@ def _check_constraint_cols(type_trees, sheets):
                     continue
                 if value in unique_set:
                     col_path = '.'.join([str(x) for x in path])
-                    raise EvalError('数据冲突', '关于unique列(%s)的重复的值(%s)' % (col_path, value), Span(sheet_name, row, col))
+                    raise exceptions.EvalError('数据冲突', '关于unique列(%s)的重复的值(%s)' % (col_path, value),
+                                               Span(sheet_name, row, col))
                 unique_set.add(value)
 
     # 检查所有必填列是否为空
@@ -203,7 +206,7 @@ def _check_constraint_cols(type_trees, sheets):
                 value = row_data[col]
                 if value in empty_values:
                     col_path = '.'.join([str(x) for x in path])
-                    raise EvalError('数据缺失', '关于required列(%s)的数据缺失' % col_path, Span(sheet_name, row, col))
+                    raise exceptions.EvalError('数据缺失', '关于required列(%s)的数据缺失' % col_path, Span(sheet_name, row, col))
 
 
 def parse(file_path: str, verbose: bool = True) -> ValueTree:
@@ -261,7 +264,7 @@ def parse(file_path: str, verbose: bool = True) -> ValueTree:
             if key_type.type not in (Types.int_t, Types.string_t):
                 (_, _, col) = key_type.span
                 (type_row, _) = row_cells[1]
-                raise StructureError('主键类型错误', '主键类型只能是整型或者字符串', Span(sheet_name, type_row, 0))
+                raise exceptions.StructureError('主键类型错误', '主键类型只能是整型或者字符串', Span(sheet_name, type_row, 0))
 
             root = root or ValueTree(TypeTree(Types.dict_t))
             # 前三行为结构定义行，从第四行开始遍历
