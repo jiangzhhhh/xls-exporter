@@ -1,7 +1,5 @@
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node
 
-# 需要兼容浮点写法
 int_grammar = Grammar(
     r'''
     int = space sig? (hex / bin / dec)
@@ -23,7 +21,6 @@ float_grammar = Grammar(
     space = ~'\s*'
     ''')
 
-# 兼容浮点值
 bool_grammar = Grammar(
     r'''
     bool = space (true / false / '1' / '0')
