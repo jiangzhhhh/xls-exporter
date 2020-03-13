@@ -271,7 +271,6 @@ def parse(file_path, verbose=True):
         # 只有两列，名字分别叫做key,value的输出成定义格式
         # 第一列是unique的输出成字典
         # 否则输出成列表  
-
         if len(type_tree.members) == 2 and (type_tree.members[0][0], type_tree.members[1][0]) == ('key', 'value'):
             (key_type, value_type) = (type_tree.members[0][1], type_tree.members[1][1])
             root = root or ValueTree(TypeTree(Types.struct_t))

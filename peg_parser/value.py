@@ -50,7 +50,7 @@ string_grammar = Grammar(
 )
 
 
-def parse_int(text: str):
+def match_int(text: str):
     result = int_grammar.match(text)
     (_, optional_sig, one_of_integer) = result
     integer = one_of_integer.children[0]
@@ -69,7 +69,7 @@ def parse_int(text: str):
     return val, (result.end - result.start)
 
 
-def parse_float(text: str):
+def match_float(text: str):
     result = float_grammar.match(text)
     (_, optional_sig, one_of_pat) = result
     pat = one_of_pat.children[0]
@@ -91,7 +91,7 @@ def parse_float(text: str):
     return val, (result.end - result.start)
 
 
-def parse_bool(text: str):
+def match_bool(text: str):
     result = bool_grammar.match(text)
     (_, one_of_word) = result
     content = one_of_word.text.lower()
@@ -101,7 +101,7 @@ def parse_bool(text: str):
         return False, (result.end - result.start)
 
 
-def parse_string(text: str):
+def match_string(text: str):
     try:
         result = string_grammar.match(text)
         (_, _, one_of_style, _, _) = result.children[0]
@@ -121,31 +121,31 @@ def parse_string(text: str):
 
 if __name__ == '__main__':
     text = '0x123,123,sss'
-    (val, pos) = parse_int(text)
+    (val, pos) = match_int(text)
     print(val, pos, text[pos:], 0x123)
     # int
-    print(parse_int('0x123'), 0x123)
-    print(parse_int('0b110'), 0b110)
-    print(parse_int('123'), 123)
-    print(parse_int('-123'), -123)
-    print(parse_int('+123'), 123)
+    print(match_int('0x123'), 0x123)
+    print(match_int('0b110'), 0b110)
+    print(match_int('123'), 123)
+    print(match_int('-123'), -123)
+    print(match_int('+123'), 123)
     # float
-    print(parse_float('0.1'), 0.1)
-    print(parse_float('-0.1'), -0.1)
-    print(parse_float('-.2'), -.2)
-    print(parse_float('123.0'), 123.0)
-    print(parse_float('123'), 123)
+    print(match_float('0.1'), 0.1)
+    print(match_float('-0.1'), -0.1)
+    print(match_float('-.2'), -.2)
+    print(match_float('123.0'), 123.0)
+    print(match_float('123'), 123)
     # bool
-    print(parse_bool('TRUE'), True)
-    print(parse_bool('true'), True)
-    print(parse_bool('1'), True)
-    print(parse_bool('FALSE'), False)
-    print(parse_bool('false'), False)
-    print(parse_bool('0'), False)
+    print(match_bool('TRUE'), True)
+    print(match_bool('true'), True)
+    print(match_bool('1'), True)
+    print(match_bool('FALSE'), False)
+    print(match_bool('false'), False)
+    print(match_bool('0'), False)
     # string
     single = "'abc say:\\'hello\\';\"SB\"'"
     double = '"abc say:\\"hello\\";\'SB\'"'
     raw = '\nabc"asda\'a\'s\d'
-    print(parse_string(single))
-    print(parse_string(double))
-    print(parse_string(raw))
+    print(match_string(single))
+    print(match_string(double))
+    print(match_string(raw))

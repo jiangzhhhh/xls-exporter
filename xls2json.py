@@ -2,11 +2,11 @@
 import re
 import sys
 import entry
-import xls_exporter
-from xls_exporter import add_quote
+from utils import add_quote
+from formatter import Formatter
 
 
-class JsonFormatter(xls_exporter.Formatter):
+class JsonFormatter(Formatter):
     def as_key(self, key):
         return add_quote(str(key))
 
@@ -21,14 +21,14 @@ class JsonFormatter(xls_exporter.Formatter):
                 if ident > 0 and m.is_empty():
                     continue
                 lst.append(self.as_any(m, ident + 1))
-            return '{\n%s\n}' % (','.join(lst))
+            return '[\n%s\n]' % (','.join(lst))
         else:
             lst = []
             for (_, m) in value_tree.members:
                 if ident > 0 and m.is_empty():
                     continue
                 lst.append(self.as_any(m, ident + 1))
-            return '{%s}' % (','.join(lst))
+            return '[%s]' % (','.join(lst))
 
     def as_dict(self, value_tree, ident):
         if ident == 0:

@@ -16,7 +16,45 @@ class ValueTree(object):
     def add_member(self, key: [str, int], member: 'ValueTree'):
         self.members.append((key, member))
 
-    def eval_value(self, row: int, text: str):
+    def _eval_array(self, row: int, text: str):
+        elem_type = self.type_tree.elem_type
+
+        def loop_body(in_out_text, index):
+            item_value = ValueTree(elem_type)
+            pos = item_value._eval_value(row, in_out_text)
+            self.add_member(index, item_value)
+            return (in_out_text[pos:].lstrip(), index + 1)
+
+        index = 0
+        (remain_text, index) = loop_body(text, index)
+        while len(remain_text) > 0:
+            if not remain_text or remain_text[0] != ',':
+                break
+            remain_text = remain_text.lstrip(',')
+            (remain_text, index) = loop_body(remain_text, index)
+        return len(text) - len(remain_text)
+
+    def _eval_tuple(self, row: int, text: str):
+        remain_text = text
+        remain_text = remain_text.lstrip()
+        if len(remain_text) < 2 or remain_text[0] != '(':
+            return 0
+        remain_text = remain_text.lstrip('(')
+        for (i, m) in self.members:
+            if i > 0:
+                if not remain_text or remain_text[0] != ',':
+                    return 0
+                remain_text = remain_text.lstrip(',')
+            pos = m._eval_value(row, remain_text)
+            remain_text = remain_text[pos:]
+        remain_text = remain_text.lstrip()
+        if not remain_text or remain_text[0] != ')':
+            return 0
+        remain_text = remain_text.lstrip(')')
+        remain_text = remain_text.lstrip()
+        return len(text) - len(remain_text)
+
+    def _eval_value(self, row: int, text: str):
         span = self.type_tree.span
         def_text = False
         pos = 0
@@ -30,44 +68,12 @@ class ValueTree(object):
 
             # 将xls单元格文本转换为内部表示值
             if self.type_tree.type in value_types:
-                parser = value_parser.__dict__['parse_' + self.type_tree.type]
-                (self.value, pos) = parser(text)
+                matcher = value_parser.__dict__['match_' + self.type_tree.type]
+                (self.value, pos) = matcher(text)
             elif self.type_tree.type == Types.embedded_array_t:  # 内嵌数组
-                elem_type = self.type_tree.elem_type
-
-                def loop_body(in_out_text, index):
-                    item_value = ValueTree(elem_type)
-                    pos = item_value.eval_value(row, in_out_text)
-                    self.add_member(index, item_value)
-                    return (in_out_text[pos:].lstrip(), index+1)
-
-                index = 0
-                (remain_text, index) = loop_body(text, index)
-                while len(remain_text) > 0:
-                    if not remain_text or remain_text[0] != ',':
-                        break
-                    remain_text = remain_text.lstrip(',')
-                    (remain_text, index) = loop_body(remain_text, index)
-                pos = len(text) - len(remain_text)
+                pos = self._eval_array(row, text)
             elif self.type_tree.type == Types.tuple_t:  # 元组
-                remain_text = text
-                remain_text = remain_text.lstrip()
-                if len(remain_text) < 2 or remain_text[0] != '(':
-                    return 0
-                remain_text = remain_text.lstrip('(')
-                for (i, m) in self.members:
-                    if i > 0:
-                        if not remain_text or remain_text[0] != ',':
-                            return 0
-                        remain_text = remain_text.lstrip(',')
-                    pos = m.eval_value(row, remain_text)
-                    remain_text = remain_text[pos:]
-                remain_text = remain_text.lstrip()
-                if not remain_text or remain_text[0] != ')':
-                    return 0
-                remain_text = remain_text.lstrip(')')
-                remain_text = remain_text.lstrip()
-                pos = len(text) - len(remain_text)
+                pos = self._eval_tuple(row, text)
         except ValueError:
             raise EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (self.type_tree.type, text), span)
         if def_text:
@@ -82,7 +88,7 @@ class ValueTree(object):
         else:
             span = self.type_tree.span
             text = row_data[span.col]
-            pos = self.eval_value(row, text)
+            pos = self._eval_value(row, text)
             if pos < len(text):
                 raise EvalError('数据类型错误', '填写了跟定义类型%s不一致的值:%s' % (str(self.type_tree), text), span)
 

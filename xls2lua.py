@@ -2,8 +2,8 @@
 import re
 import sys
 import entry
-import xls_exporter
-from xls_exporter import add_quote
+from utils import add_quote
+from formatter import Formatter
 
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字
@@ -20,7 +20,7 @@ def is_legal_id(s):
     return False
 
 
-class LuaFormatter(xls_exporter.Formatter):
+class LuaFormatter(Formatter):
     def as_key(self, key):
         if isinstance(key, int):
             return '[%d]' % key
