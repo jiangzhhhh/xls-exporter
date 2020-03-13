@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
 import sys
-import entry
-from utils import add_quote
-from formatter import Formatter
+from exporter import entry
+from exporter.utils import add_quote
+from exporter.formatter import Formatter
 
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字

@@ -15,10 +15,10 @@ int_grammar = Grammar(
 float_grammar = Grammar(
     r'''
     float = space sig? (floor_float / fact_float)
-    floor_float = numberals fact?
-    fact_float = numberals? fact
-    fact = '.' numberals
-    numberals = ~r'[0-9]+'
+    floor_float = numerals fact?
+    fact_float = numerals? fact
+    fact = '.' numerals
+    numerals = ~r'[0-9]+'
     sig = '-' / '+'
     space = ~'\s*'
     ''')

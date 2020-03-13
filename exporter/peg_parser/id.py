@@ -1,8 +1,8 @@
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node
-from type_tree import TypeTree
-from type_define import Types
-from span import Span
+from exporter.type_tree import TypeTree
+from exporter.type_define import Types
+from exporter.span import Span
 
 grammar = Grammar(
 r'''

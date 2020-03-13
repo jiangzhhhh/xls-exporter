@@ -1,7 +1,6 @@
 import re
-from type_define import Types, value_types
-from utils import to_xls_col
-from span import Span
+from exporter.type_define import Types, value_types
+from exporter.span import Span
 
 default_option_pat = re.compile(r'.*def\s*:\s*(.+)$')
 

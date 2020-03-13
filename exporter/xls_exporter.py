@@ -3,23 +3,22 @@ import sys
 import xlrd
 import re
 from six import string_types
-from peg_parser.id import get_or_create_parent
-from peg_parser.type import parse_type_tree
-from type_define import Types, value_types, empty_values
-from exceptions import *
-from type_tree import TypeTree
-from value_tree import ValueTree
-from span import Span
-from utils import cell_to_text
+from exporter.peg_parser.id import get_or_create_parent
+from exporter.peg_parser.type import parse_type_tree
+from exporter.type_define import Types, value_types, empty_values
+from exporter.exceptions import *
+from exporter.type_tree import TypeTree
+from exporter.value_tree import ValueTree
+from exporter.span import Span
+from exporter.utils import cell_to_text
 
 # 正则
-array_pat = re.compile(r'^(\w+)\[(\d+)\]$')
 setting_pat = re.compile(r'//\$(.+)$')
 
 
 # 读取xls文件内容，并过滤注释行
 # 返回[(sheet.name, [(row, row_cells), ...], [settings, ...])]
-def read_sheets_from_xls(file_path):
+def _read_sheets_from_xls(file_path):
     try:
         workbook = xlrd.open_workbook(file_path)
     # 将xlrd的异常转化为自定义异常向上传播
@@ -55,35 +54,8 @@ def read_sheets_from_xls(file_path):
     return sheets
 
 
-def parse_type(text: str, span: Span):
-    type_tree = None
-    if text in value_types:
-        # 基本类型
-        type_tree = TypeTree(text)
-    if text.endswith('[]'):
-        # 内嵌数组
-        type_tree = TypeTree(Types.embedded_array_t)
-        elem_type = parse_type(text[:-2], span)
-        if elem_type is None:
-            return None
-        type_tree.set_embedded_type(elem_type)
-    if text[0] == '(' and text[-1] == ')':
-        # 元组
-        type_tree = TypeTree(Types.tuple_t)
-        terms = text[1:-1].split(',')
-        for i in range(len(terms)):
-            term = terms[i].strip()
-            term_type = parse_type(term, span)
-            if term_type is None:
-                return None
-            type_tree.add_member(i, term_type)
-    if type_tree:
-        type_tree.set_span(span)
-    return type_tree
-
-
 # 输入sheet构建类型树
-def build_type_tree(sheet_name: str, sheet_cells):
+def _build_type_tree(sheet_name: str, sheet_cells):
     (option_row, option_row_cells) = sheet_cells[0]
     (type_row, type_row_cells) = sheet_cells[1]
     (id_row, id_row_cells) = sheet_cells[2]
@@ -134,7 +106,7 @@ def build_type_tree(sheet_name: str, sheet_cells):
 
 
 # 检查类型树之间是否存在结构冲突
-def check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
+def _check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
     # 宽度优先遍历
     def bfs_walk(lhs_key, lhs, rhs_key, rhs):
         span = rhs.span or Span('none', 0, 0)
@@ -169,7 +141,7 @@ def check_type_conflicet(lhs_key, lhs: TypeTree, rhs_key, rhs: TypeTree):
 
 
 # 根据约束列定义，对源数据进行检查
-def check_constraint_cols(type_trees, sheets):
+def _check_constraint_cols(type_trees, sheets):
     if not type_trees:
         return
 
@@ -234,13 +206,13 @@ def check_constraint_cols(type_trees, sheets):
                     raise EvalError('数据缺失', '关于required列(%s)的数据缺失' % col_path, Span(sheet_name, row, col))
 
 
-def parse(file_path, verbose=True):
-    sheets = read_sheets_from_xls(file_path)  # 过滤注释行
+def parse(file_path: str, verbose: bool = True) -> ValueTree:
+    sheets = _read_sheets_from_xls(file_path)  # 过滤注释行
 
     # 生成表结构
     type_trees = []
     for (sheet_name, row_cells, settings) in sheets:
-        type_tree = build_type_tree(sheet_name, row_cells)
+        type_tree = _build_type_tree(sheet_name, row_cells)
         type_trees.append((sheet_name, type_tree))
         if verbose:
             print(settings)
@@ -251,10 +223,10 @@ def parse(file_path, verbose=True):
         for (rhs_name, rhs) in type_trees:
             if lhs == rhs:
                 continue
-            check_type_conflicet(lhs_name, lhs, rhs_name, rhs)
+            _check_type_conflicet(lhs_name, lhs, rhs_name, rhs)
 
     # 检查有约束的值
-    check_constraint_cols(type_trees, sheets)
+    _check_constraint_cols(type_trees, sheets)
 
     root = None
     # 求值
@@ -313,9 +285,9 @@ def parse(file_path, verbose=True):
     return root or ValueTree(TypeTree(Types.dict_t))
 
 
-def error(msg):
+def error(msg: str) -> None:
     sys.stderr.write(msg + '\n')
 
 
 if __name__ == '__main__':
-    print(parse('example/example.xlsx', verbose=True))
+    print(parse('../example/example.xlsx', verbose=True))

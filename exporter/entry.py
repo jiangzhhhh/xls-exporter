@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-import xls_exporter
-from xls_exporter import error
 import codecs
+from exporter import xls_exporter
+from exporter.xls_exporter import error
+from exporter.formatter import Formatter
 
-def main(sys_argv, file_extention, formatter):
+
+def main(sys_argv, file_extension: str, formatter: Formatter):
     argv = []
     options = []
     for arg in sys_argv:
@@ -15,17 +17,17 @@ def main(sys_argv, file_extention, formatter):
     only_check = '--check' in options
     argc = len(argv)
     if argc < 1:
-        msg = 'usage: xls2%s.py <input_file> [<output_file>] [option]\n'\
-        'option:\n'\
-        '    --check: only check'\
-        % file_extention
+        msg = 'usage: xls2%s.py <input_file> [<output_file>] [option]\n' \
+              'option:\n' \
+              '    --check: only check' \
+              % file_extension
         error(msg)
         return 2
     elif only_check:
         input_file = argv[1]
         try:
-            value_tree = xls_exporter.parse(input_file, verbose=True)
-        except (xls_exporter.ParseError) as e:
+            xls_exporter.parse(input_file, verbose=True)
+        except xls_exporter.ParseError as e:
             error(e.message)
             return 3
     else:
@@ -34,7 +36,7 @@ def main(sys_argv, file_extention, formatter):
             output_file = argv[2]
         else:
             pre, ext = os.path.splitext(input_file)
-            output_file = pre + '.' + file_extention
+            output_file = pre + '.' + file_extension
 
         try:
             value_tree = xls_exporter.parse(input_file, verbose=True)

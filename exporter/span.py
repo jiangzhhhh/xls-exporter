@@ -1,4 +1,4 @@
-from utils import to_xls_row, to_xls_col
+from exporter.utils import to_xls_row, to_xls_col
 
 
 class Span(object):
