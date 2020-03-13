@@ -33,10 +33,19 @@ bool_grammar = Grammar(
     '''
 )
 
-comma_grammar = Grammar(
+string_grammar = Grammar(
     r'''
-    text = escaping_comma / ~'[^,]*'
-    escaping_comma = '\\,'
+    string = double_quote_string / single_quote_string
+    double_quote_string = space double_quote (escaping_double_quote / double_quote_literal)*  double_quote space
+    single_quote_string = space single_quote (escaping_single_quote / single_quote_literal)*  single_quote space
+    double_quote_literal = ~'[^"]'
+    single_quote_literal = ~'[^\']'
+    escaping_double_quote = backslash double_quote
+    escaping_single_quote = backslash single_quote
+    double_quote = '"'
+    single_quote = "'"
+    backslash = '\\'
+    space = ~'[\s]*'
     '''
 )
 
@@ -93,19 +102,24 @@ def parse_bool(text: str):
 
 
 def parse_string(text: str):
-    return text, len(text)
-
-
-def find_comma_pos(text: str):
-    result = comma_grammar.match(text)
-    pos = result.end - result.start
-    return pos
+    try:
+        result = string_grammar.match(text)
+        (_, _, one_of_style, _, _) = result.children[0]
+        s = ''
+        for x in one_of_style.children:
+            expr_name = x.children[0].expr_name
+            if expr_name == 'escaping_double_quote':
+                s += '"'
+            elif expr_name == 'escaping_single_quote':
+                s += "'"
+            else:
+                s += x.text
+        return s, result.end - result.start
+    except:
+        return text, len(text)
 
 
 if __name__ == '__main__':
-    text = '13'
-    pos = find_comma_pos(text)
-    print(text, pos, text[pos:])
     text = '0x123,123,sss'
     (val, pos) = parse_int(text)
     print(val, pos, text[pos:], 0x123)
@@ -129,5 +143,9 @@ if __name__ == '__main__':
     print(parse_bool('false'), False)
     print(parse_bool('0'), False)
     # string
-    print(parse_string(r'ab"c\tdef\gh'), r'ab"c\tdef\gh')
-
+    single = "'abc say:\\'hello\\';\"SB\"'"
+    double = '"abc say:\\"hello\\";\'SB\'"'
+    raw = '\nabc"asda\'a\'s\d'
+    print(parse_string(single))
+    print(parse_string(double))
+    print(parse_string(raw))

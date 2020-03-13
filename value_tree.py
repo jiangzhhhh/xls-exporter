@@ -44,7 +44,7 @@ class ValueTree(object):
                 index = 0
                 (remain_text, index) = loop_body(text, index)
                 while len(remain_text) > 0:
-                    if remain_text[0] != ',':
+                    if not remain_text or remain_text[0] != ',':
                         break
                     remain_text = remain_text.lstrip(',')
                     (remain_text, index) = loop_body(remain_text, index)
@@ -57,15 +57,13 @@ class ValueTree(object):
                 remain_text = remain_text.lstrip('(')
                 for (i, m) in self.members:
                     if i > 0:
-                        if remain_text[0] != ',':
+                        if not remain_text or remain_text[0] != ',':
                             return 0
                         remain_text = remain_text.lstrip(',')
-                    comma_pos = value_parser.find_comma_pos(remain_text)
-                    slice = remain_text[0:comma_pos]
-                    pos = m.eval_value(row, slice)
+                    pos = m.eval_value(row, remain_text)
                     remain_text = remain_text[pos:]
                 remain_text = remain_text.lstrip()
-                if remain_text[0] != ')':
+                if not remain_text or remain_text[0] != ')':
                     return 0
                 remain_text = remain_text.lstrip(')')
                 remain_text = remain_text.lstrip()
