@@ -4,29 +4,26 @@ from exporter.type_tree import TypeTree
 from exporter.span import Span
 from exporter.type_define import Types
 
-grammar = Grammar(
-    r'''
+rule = r'''
     type = array / tuple / base_type
     array = (tuple / base_type) '[]'+
     base_type = '%(INT)s' / '%(BOOL)s' / '%(FLOAT)s' / '%(STRING)s'
     tuple = '(' tuple_members ')'
-    tuple_members = type (',' space type)*
-    space = ~'\s*'
+    tuple_members = type (',' _ type)*
+    _ = ~'\s*'
     ''' % {
-        'INT': Types.int_t,
-        'BOOL': Types.bool_t,
-        'FLOAT': Types.float_t,
-        'STRING': Types.string_t,
-    }
-)
+    'INT': Types.int_t,
+    'BOOL': Types.bool_t,
+    'FLOAT': Types.float_t,
+    'STRING': Types.string_t,
+}
+
+grammar = Grammar(rule)
 
 
 def _build_type(grammar_tree: Node, span: Span):
     expr_name = grammar_tree.expr_name
-    if expr_name == 'trim_space':
-        (_, type, _) = grammar_tree.children
-        return _build_type(type, span)
-    elif expr_name == 'non_array':
+    if expr_name == 'non_array':
         return _build_type(grammar_tree.children[0], span)
     elif expr_name == 'array':
         (elem_type, array_suffix) = grammar_tree
@@ -62,10 +59,12 @@ def _build_type(grammar_tree: Node, span: Span):
 
 
 def parse_type_tree(text: str, span: Span) -> TypeTree:
+    text = text.strip()
     grammar_tree = grammar.parse(text)
     return _build_type(grammar_tree, span)
 
 
 if __name__ == '__main__':
     span = Span('sheet', 0, 0)
-    print(parse_type_tree('((string,int,float)[])[]', span))
+    # print(parse_type_tree('((string,int,float)[])[]', span))
+    print(parse_type_tree('(x:float, y:float)', span))

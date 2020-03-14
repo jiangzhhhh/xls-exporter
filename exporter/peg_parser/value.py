@@ -87,21 +87,18 @@ def match_bool(text: str) -> (bool, int):
 
 
 def match_string(text: str) -> (str, int):
-    try:
-        result = grammar['string'].match(text)
-        (_, _, one_of_style, _, _) = result.children[0]
-        s = ''
-        for x in one_of_style.children:
-            expr_name = x.children[0].expr_name
-            if expr_name == 'escaping_double_quote':
-                s += '"'
-            elif expr_name == 'escaping_single_quote':
-                s += "'"
-            else:
-                s += x.text
-        return s, result.end - result.start
-    except parsimonious.exceptions.ParseError:
-        return text, len(text)
+    result = grammar['string'].match(text)
+    (_, _, one_of_style, _, _) = result.children[0]
+    s = ''
+    for x in one_of_style.children:
+        expr_name = x.children[0].expr_name
+        if expr_name == 'escaping_double_quote':
+            s += '"'
+        elif expr_name == 'escaping_single_quote':
+            s += "'"
+        else:
+            s += x.text
+    return s, result.end - result.start
 
 
 if __name__ == '__main__':

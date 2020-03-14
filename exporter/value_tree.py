@@ -18,12 +18,12 @@ class ValueTree(object):
     def add_member(self, key: [str, int], member: 'ValueTree'):
         self.members.append((key, member))
 
-    def _eval_array(self, row: int, text: str):
+    def _eval_embedded_array(self, row: int, text: str, explicit: bool):
         elem_type = self.type_tree.elem_type
 
         def loop_body(in_out_text, index):
             item_value = ValueTree(elem_type)
-            pos = item_value._eval_value(row, in_out_text)
+            pos = item_value._eval_generic(row, in_out_text, False)
             self.add_member(index, item_value)
             return in_out_text[pos:].lstrip(), index + 1
 
@@ -36,9 +36,9 @@ class ValueTree(object):
             (remain_text, index) = loop_body(remain_text, index)
         return len(text) - len(remain_text)
 
-    def _eval_tuple(self, row: int, text: str):
+    def _eval_tuple(self, row: int, text: str, explicit: bool):
         remain_text = text.lstrip()
-        if len(remain_text) < 2 or remain_text[0] != '(':
+        if explicit and (len(remain_text) < 2 or remain_text[0] != '('):
             return 0
         remain_text = remain_text.lstrip('(')
         for (i, m) in self.members:
@@ -46,29 +46,41 @@ class ValueTree(object):
                 if not remain_text or remain_text[0] != ',':
                     return 0
                 remain_text = remain_text.lstrip(',')
-            pos = m._eval_value(row, remain_text)
+            pos = m._eval_generic(row, remain_text, False)
             remain_text = remain_text[pos:]
-        if not remain_text or remain_text[0] != ')':
+        if explicit and (not remain_text or remain_text[0] != ')'):
             return 0
         remain_text = remain_text.lstrip(')')
         remain_text = remain_text.lstrip()
         return len(text) - len(remain_text)
 
-    def _eval_value(self, row: int, text: str):
+    def _eval_string(self, row: int, text: str, explicit: bool) -> int:
+        pos = 0
+        if explicit:
+            (self.value, pos) = value_parser.match_string(text)
+        else:
+            stripped = text.strip()
+            if (stripped[0] == stripped[-1] == '"') or (stripped[0] == stripped[-1] == "'"):
+                (self.value, pos) = value_parser.match_string(text)
+            else:
+                self.value, pos = text, len(text)
+        return pos
+
+    def _eval_value(self, row: int, text: str, explicit: bool) -> int:
+        matcher = value_parser.__dict__['match_' + self.type_tree.type]
+        (self.value, pos) = matcher(text)
+        return pos
+
+    def _eval_generic(self, row: int, text: str, top_define: bool):
         span = self.type_tree.span
         pos = 0
         try:
             if text in empty_values:
                 return 0
-
             # 将xls单元格文本转换为内部表示值
-            if self.type_tree.type in value_types:
-                matcher = value_parser.__dict__['match_' + self.type_tree.type]
-                (self.value, pos) = matcher(text)
-            elif self.type_tree.type == Types.embedded_array_t:  # 内嵌数组
-                pos = self._eval_array(row, text)
-            elif self.type_tree.type == Types.tuple_t:  # 元组
-                pos = self._eval_tuple(row, text)
+            methods = self.__class__.__dict__
+            eval_func = methods.get('_eval_' + self.type_tree.type, methods['_eval_value'])
+            pos = eval_func(self, row, text, not top_define)
         except parsimonious.exceptions.ParseError:
             raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (self.type_tree.type, text), span)
         return pos
@@ -84,7 +96,7 @@ class ValueTree(object):
             # 如果有填写了空值，且存在默认值，则替换之
             if self.type_tree.default is not None and (text in empty_values):
                 text = self.type_tree.default
-            pos = self._eval_value(row, text)
+            pos = self._eval_generic(row, text, top_define=True)
             if pos < len(text):
                 raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (str(self.type_tree), text), span)
 
