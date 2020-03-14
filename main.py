@@ -38,14 +38,10 @@ def cmd(argv):
     only_check = opts['only-check']
 
     formatter = None
-    try:
-        module = langs.get(lang, None)
-        if module:
-            formatter = module.__dict__.get('Formatter')
-        if not formatter:
-            error('%s is not supported' % lang)
-            return 2
-    except ModuleNotFoundError:
+    module = langs.get(lang, None)
+    if module:
+        formatter = module.__dict__.get('Formatter')
+    if not formatter:
         error('%s is not supported' % lang)
         return 2
 
