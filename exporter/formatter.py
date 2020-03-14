@@ -2,7 +2,7 @@ from exporter.type_define import Types
 from exporter.utils import add_quote
 
 
-class Formatter(object):
+class LangFormatter(object):
     def as_any(self, value_tree: 'ValueTree', ident: int):
         type = value_tree.type_tree.type
         if type == Types.struct_t:

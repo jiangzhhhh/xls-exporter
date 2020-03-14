@@ -287,9 +287,5 @@ def parse(file_path: str, verbose: bool = True) -> ValueTree:
     return root or ValueTree(TypeTree(Types.dict_t))
 
 
-def error(msg: str) -> None:
-    sys.stderr.write(msg + '\n')
-
-
 if __name__ == '__main__':
     print(parse('../example/example.xlsx', verbose=True))

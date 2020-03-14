@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import sys
-from exporter import entry
 from exporter.utils import add_quote
-from exporter.formatter import Formatter
+from exporter.formatter import LangFormatter
 
 
-class JsonFormatter(Formatter):
+class Formatter(LangFormatter):
     def as_key(self, key):
         return add_quote(str(key))
 
@@ -65,7 +63,3 @@ class JsonFormatter(Formatter):
 
     def as_nil(self, value_tree, ident):
         return 'none'
-
-
-if __name__ == '__main__':
-    sys.exit(entry.main(sys.argv, 'json', JsonFormatter()))

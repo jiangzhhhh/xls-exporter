@@ -1,7 +1,8 @@
 from exporter.type_tree import TypeTree
 from exporter.type_define import Types, value_types, empty_values
 from exporter import exceptions
-from exporter.formatter import Formatter
+from exporter.formatter import LangFormatter
+from exporter.lang.python import Formatter as PythonFormatter
 from exporter.peg_parser import value as value_parser
 import parsimonious
 from typing import List
@@ -101,9 +102,9 @@ class ValueTree(object):
                 raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (str(self.type_tree), text), span)
 
     def __str__(self):
-        return self.tostring(formatter=Formatter())
+        return self.tostring()
 
-    def tostring(self, formatter: Formatter = Formatter()):
+    def tostring(self, formatter: LangFormatter = PythonFormatter()):
         return formatter.as_any(self, 0)
 
     def is_empty(self) -> bool:

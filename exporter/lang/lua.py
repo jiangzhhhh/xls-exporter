@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-import sys
-from exporter import entry
 from exporter.utils import add_quote
-from exporter.formatter import Formatter
+from exporter.formatter import LangFormatter
 
 id_pat = re.compile(r'^[_a-zA-Z][_\w]*$')
 # lua的保留关键字
@@ -20,7 +18,7 @@ def is_legal_id(s):
     return False
 
 
-class LuaFormatter(Formatter):
+class Formatter(LangFormatter):
     def as_key(self, key):
         if isinstance(key, int):
             return '[%d]' % key
@@ -85,7 +83,3 @@ class LuaFormatter(Formatter):
 
     def as_nil(self, value_tree, ident):
         return 'nil'
-
-
-if __name__ == '__main__':
-    sys.exit(entry.main(sys.argv, 'lua', LuaFormatter()))
