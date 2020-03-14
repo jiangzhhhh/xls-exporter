@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
-import importlib
-import pkgutil
 import argparse
-import codecs
 from exporter import xls_exporter
-from exporter.formatter import LangFormatter
 from exporter import exceptions
-from exporter import lang as support_langs
+from exporter.lang import lua
+from exporter.lang import json
+from exporter.lang import python
 
 
 def error(msg: str) -> None:
@@ -16,15 +13,16 @@ def error(msg: str) -> None:
 
 
 def support_output_langs():
-    lang_pkg = importlib.import_module('exporter.lang')
-    langs = []
-    for (_, name, _) in pkgutil.iter_modules(lang_pkg.__path__):
-        langs.append(name)
-    return langs
+    dict = {}
+    for m in [lua, json, python]:
+        name = m.__name__.split('.')[-1]
+        dict[name] = m
+    return dict
 
 
 def cmd(argv):
-    lang_help = 'support langs:' + ' '.join(support_output_langs())
+    langs = support_output_langs()
+    lang_help = 'support langs:' + ' '.join([k for k in langs])
     parser = argparse.ArgumentParser(description='welcome to use xls-exporter')
     parser.add_argument('input-file', type=str, help='input file', metavar='<input file>')
     parser.add_argument('-l', type=str, required=True, help=lang_help, metavar='<output lang>', dest='output-lang')
@@ -39,14 +37,16 @@ def cmd(argv):
     output_file = opts['output-file']
     only_check = opts['only-check']
 
+    formatter = None
     try:
-        module = importlib.import_module('exporter.lang.%s' % lang)
-        formatter = module.__dict__.get('Formatter')
+        module = langs.get(lang, None)
+        if module:
+            formatter = module.__dict__.get('Formatter')
         if not formatter:
             error('%s is not supported' % lang)
             return 2
     except ModuleNotFoundError:
-        parser.print_help(sys.stderr)
+        error('%s is not supported' % lang)
         return 2
 
     try:
@@ -61,5 +61,5 @@ def cmd(argv):
 
 
 if __name__ == '__main__':
-    # cmd(sys.argv[1:])
-    cmd('example/example.xlsx -l cpp'.split())
+    cmd(sys.argv[1:])
+    # cmd('example/example.xlsx -l cpp'.split())
