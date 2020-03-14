@@ -1,56 +1,43 @@
 from parsimonious.grammar import Grammar
 import parsimonious
 
-int_grammar = Grammar(
-    r'''
-    int = space sig? (hex / bin / dec)
-    hex = '0x' ~r'[0-9a-fA-F]+'
-    bin = '0b' ~r'[0-1]+'
-    dec = ~r'[0-9]+'
-    sig = '-' / '+'
-    space = ~'\s*'
-    ''')
+rule = r'''
+int = _ sig? (hex / bin / dec) _
+hex = '0x' ~r'[0-9a-fA-F]+'
+bin = '0b' ~r'[0-1]+'
+dec = ~r'[0-9]+'
 
-float_grammar = Grammar(
-    r'''
-    float = space sig? (floor_float / fact_float)
-    floor_float = numerals fact?
-    fact_float = numerals? fact
-    fact = '.' numerals
-    numerals = ~r'[0-9]+'
-    sig = '-' / '+'
-    space = ~'\s*'
-    ''')
+float = _ sig? (floor_float / fact_float) _
+floor_float = numerals fact?
+fact_float = numerals? fact
+fact = '.' numerals
+numerals = ~r'[0-9]+'
 
-bool_grammar = Grammar(
-    r'''
-    bool = space (true / false / '1' / '0')
-    true = ('T' / 't') ('R' / 'r') ('U' / 'u') ('E' / 'e')
-    false = ('F' / 'f') ('A' / 'a') ('L' / 'l') ('S' / 's') ('E' / 'e')
-    space = ~'\s*'
-    '''
-)
+bool = _ (true / false / '1' / '0') _
+true = ('T' / 't') ('R' / 'r') ('U' / 'u') ('E' / 'e')
+false = ('F' / 'f') ('A' / 'a') ('L' / 'l') ('S' / 's') ('E' / 'e')
 
-string_grammar = Grammar(
-    r'''
-    string = double_quote_string / single_quote_string
-    double_quote_string = space double_quote (escaping_double_quote / double_quote_literal)*  double_quote space
-    single_quote_string = space single_quote (escaping_single_quote / single_quote_literal)*  single_quote space
-    double_quote_literal = ~'[^"]'
-    single_quote_literal = ~'[^\']'
-    escaping_double_quote = backslash double_quote
-    escaping_single_quote = backslash single_quote
-    double_quote = '"'
-    single_quote = "'"
-    backslash = '\\'
-    space = ~'[\s]*'
-    '''
-)
+string = double_quote_string / single_quote_string
+double_quote_string = _ double_quote (escaping_double_quote / double_quote_literal)*  double_quote _
+single_quote_string = _ single_quote (escaping_single_quote / single_quote_literal)*  single_quote _
+double_quote_literal = ~'[^"]'
+single_quote_literal = ~'[^\']'
+escaping_double_quote = backslash double_quote
+escaping_single_quote = backslash single_quote
+double_quote = '"'
+single_quote = "'"
+backslash = '\\'
+
+sig = '-' / '+'
+_ = ~'\s*'
+'''
+
+grammar = Grammar(rule)
 
 
 def match_int(text: str) -> (int, int):
-    result = int_grammar.match(text)
-    (_, optional_sig, one_of_integer) = result
+    result = grammar['int'].match(text)
+    (_, optional_sig, one_of_integer, _) = result
     integer = one_of_integer.children[0]
     expr_name = integer.expr_name
     val = None
@@ -68,8 +55,8 @@ def match_int(text: str) -> (int, int):
 
 
 def match_float(text: str) -> (float, int):
-    result = float_grammar.match(text)
-    (_, optional_sig, one_of_pat) = result
+    result = grammar['float'].match(text)
+    (_, optional_sig, one_of_pat, _) = result
     pat = one_of_pat.children[0]
     val = 0
     expr_name = pat.expr_name
@@ -90,8 +77,8 @@ def match_float(text: str) -> (float, int):
 
 
 def match_bool(text: str) -> (bool, int):
-    result = bool_grammar.match(text)
-    (_, one_of_word) = result
+    result = grammar['bool'].match(text)
+    (_, one_of_word, _) = result
     content = one_of_word.text.lower()
     if content in ('true', '1'):
         return True, (result.end - result.start)
@@ -101,7 +88,7 @@ def match_bool(text: str) -> (bool, int):
 
 def match_string(text: str) -> (str, int):
     try:
-        result = string_grammar.match(text)
+        result = grammar['string'].match(text)
         (_, _, one_of_style, _, _) = result.children[0]
         s = ''
         for x in one_of_style.children:

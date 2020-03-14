@@ -4,6 +4,7 @@ from exporter import exceptions
 from exporter.formatter import Formatter
 from exporter.peg_parser import value as value_parser
 import parsimonious
+from typing import List
 
 
 class ValueTree(object):
@@ -36,8 +37,7 @@ class ValueTree(object):
         return len(text) - len(remain_text)
 
     def _eval_tuple(self, row: int, text: str):
-        remain_text = text
-        remain_text = remain_text.lstrip()
+        remain_text = text.lstrip()
         if len(remain_text) < 2 or remain_text[0] != '(':
             return 0
         remain_text = remain_text.lstrip('(')
@@ -48,7 +48,6 @@ class ValueTree(object):
                 remain_text = remain_text.lstrip(',')
             pos = m._eval_value(row, remain_text)
             remain_text = remain_text[pos:]
-        remain_text = remain_text.lstrip()
         if not remain_text or remain_text[0] != ')':
             return 0
         remain_text = remain_text.lstrip(')')
@@ -57,12 +56,7 @@ class ValueTree(object):
 
     def _eval_value(self, row: int, text: str):
         span = self.type_tree.span
-        def_text = False
         pos = 0
-        # 如果有填写了空值，且存在默认值，则替换之
-        if self.type_tree.default is not None and (text in empty_values):
-            text = self.type_tree.default
-            def_text = True
         try:
             if text in empty_values:
                 return 0
@@ -77,11 +71,9 @@ class ValueTree(object):
                 pos = self._eval_tuple(row, text)
         except parsimonious.exceptions.ParseError:
             raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (self.type_tree.type, text), span)
-        if def_text:
-            pos = 0
         return pos
 
-    def eval(self, row: int, row_data):
+    def eval(self, row: int, row_data: List[str]) -> None:
         node_type = self.type_tree.type
         if node_type in (Types.array_t, Types.struct_t):
             for (_, member) in self.members:
@@ -89,6 +81,9 @@ class ValueTree(object):
         else:
             span = self.type_tree.span
             text = row_data[span.col]
+            # 如果有填写了空值，且存在默认值，则替换之
+            if self.type_tree.default is not None and (text in empty_values):
+                text = self.type_tree.default
             pos = self._eval_value(row, text)
             if pos < len(text):
                 raise exceptions.EvalError('数据类型错误', '填写了定义类型%s无法解析的值的值:%s' % (str(self.type_tree), text), span)
@@ -99,7 +94,7 @@ class ValueTree(object):
     def tostring(self, formatter: Formatter = Formatter()):
         return formatter.as_any(self, 0)
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         if self.type_tree.type in (Types.struct_t, Types.array_t, Types.dict_t, Types.embedded_array_t, Types.tuple_t):
             for (_, m) in self.members:
                 if not m.is_empty():
