@@ -3,7 +3,7 @@ import os
 import sys
 import importlib
 import pkgutil
-import getopt
+import argparse
 import codecs
 from exporter import xls_exporter
 from exporter.formatter import LangFormatter
@@ -15,48 +15,30 @@ def error(msg: str) -> None:
     sys.stderr.write(msg + '\n')
 
 
-def cmd(argv):
-    support_lang_list = ''
+def support_output_langs():
     lang_pkg = importlib.import_module('exporter.lang')
+    langs = []
     for (_, name, _) in pkgutil.iter_modules(lang_pkg.__path__):
-        support_lang_list += '    %s\n' % name
-    usage = 'usage main.py <input_file> -l <lang> -o <output_file> [option]\n' \
-            '  lang:\n' \
-            '%s' \
-            '  option:\n' \
-            '    --check: only check, no output' % support_lang_list
+        langs.append(name)
+    return langs
 
-    try:
-        opts, args = getopt.getopt(argv, 'hi:l:o', ['--check'])
-    except getopt.GetoptError:
-        error(usage)
-        return 2
 
-    input_file = None
-    lang = None
-    output_file = None
-    only_check = False
+def cmd(argv):
+    lang_help = 'support langs:' + ' '.join(support_output_langs())
+    parser = argparse.ArgumentParser(description='welcome to use xls-exporter')
+    parser.add_argument('input-file', type=str, help='input file', metavar='<input file>')
+    parser.add_argument('-l', type=str, required=True, help=lang_help, metavar='<output lang>', dest='output-lang')
+    parser.add_argument('-o', type=argparse.FileType('w', encoding='utf8'), required=False, help='output file',
+                        metavar='<output file>', default=sys.stdout, dest='output-file')
+    parser.add_argument('--check', action='store_true', required=False, help='only check', dest='only-check')
+    args = parser.parse_args(argv)
+    opts = vars(args)
 
-    for opt, arg in opts:
-        if opt == '-h':
-            print(usage)
-            return 0
-        elif opt == '-l':
-            lang = arg
-        elif opt == '-o':
-            output_file = arg
-        elif opt == '--check':
-            only_check = True
+    input_file = opts['input-file']
+    lang = opts['output-lang']
+    output_file = opts['output-file']
+    only_check = opts['only-check']
 
-    if not args:
-        error(usage)
-        return 2
-
-    if lang is None:
-        error(usage)
-        return 2
-
-    input_file = args[0]
     try:
         module = importlib.import_module('exporter.lang.%s' % lang)
         formatter = module.__dict__.get('Formatter')
@@ -64,21 +46,14 @@ def cmd(argv):
             error('%s is not supported' % lang)
             return 2
     except ModuleNotFoundError:
-        error('%s is not supported' % lang)
+        parser.print_help(sys.stderr)
         return 2
 
     try:
         value_tree = xls_exporter.parse(input_file, verbose=True)
         if not only_check:
             out = value_tree.tostring(formatter=formatter())
-            if output_file:
-                # 输出文件
-                with codecs.open(output_file, "w+", "utf-8") as f:
-                    f.write(out)
-                print('write file:%s' % os.path.abspath(output_file))
-            else:
-                print('-' * 10, 'output', '-' * 10)
-                print(out)
+            output_file.write(out)
     except exceptions.ParseError as e:
         error(e.message)
         return 3
@@ -87,5 +62,4 @@ def cmd(argv):
 
 if __name__ == '__main__':
     # cmd(sys.argv[1:])
-    cmd(['-l', 'lua', 'example/example.xlsx'])
-    # cmd(['-h'])
+    cmd('example/example.xlsx -l cpp'.split())
