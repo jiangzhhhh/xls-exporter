@@ -19,9 +19,9 @@ namespace excel_addin
                 return Path.Combine(workDir, "Tools");
             }
         }
-        public string Xls2LuaExe {
+        public string XlsExporter {
             get {
-                return Path.Combine(ToolsDir, "xls2lua");
+                return Path.Combine(ToolsDir, "xls-exporter");
             }
         }
 

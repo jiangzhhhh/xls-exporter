@@ -1,21 +1,26 @@
-﻿using System;
+﻿using Microsoft.Office.Interop.Excel;
+using Microsoft.Office.Tools.Ribbon;
+using System;
 using System.Collections.Generic;
 using System.Deployment.Application;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Windows.Forms;
-using Microsoft.Office.Interop.Excel;
-using Microsoft.Office.Tools.Ribbon;
 
 namespace excel_addin
 {
     public partial class Ribbon1
     {
+        string Targetlang {
+            get {
+                return Globals.Ribbons.Ribbon1.gallery1.SelectedItem.Label;
+            }
+        }
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
+            Globals.Ribbons.Ribbon1.gallery1.Label = $"{Targetlang}";
+
             var revision = ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString(4);
             Globals.Ribbons.Ribbon1.label2.Label = $"版本:{revision}";
         }
@@ -23,7 +28,7 @@ namespace excel_addin
         void Export(string[] files, string[] outfiles)
         {
             bool singleMode = files.Length == 1;
-            var xls2lua = Globals.ThisAddIn.Xls2LuaExe;
+            var prog = Globals.ThisAddIn.XlsExporter;
             int done = 0;
             int suc = 0;
             int all = files.Length;
@@ -34,8 +39,8 @@ namespace excel_addin
 
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
-                    FileName = xls2lua,
-                    Arguments = $"\"{file}\" \"{tofile}\"",
+                    FileName = prog,
+                    Arguments = $"\"{file}\" -o \"{tofile}\" -l {Targetlang}",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     RedirectStandardError = true,
@@ -84,57 +89,16 @@ namespace excel_addin
             Globals.Ribbons.Ribbon1.label1.Label = msg;
         }
 
-        private void button1_Click(object sender, RibbonControlEventArgs e)
-        {
-            var activeBook = Globals.ThisAddIn.Application.ActiveWorkbook;
-            var bookDir = Path.GetDirectoryName(activeBook.FullName);
-            var dataDir = Path.Combine(bookDir, "Data");
-            if (!Directory.Exists(dataDir))
-                dataDir = bookDir;
-            SaveFileDialog dialog = new SaveFileDialog();
-            dialog.FileName = Path.ChangeExtension(activeBook.Name, ".lua");
-            dialog.InitialDirectory = dataDir;
-            dialog.Filter = "lua files (*.lua)|*.lua";
-            dialog.FilterIndex = 2;
-            dialog.RestoreDirectory = true;
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                var outPath = dialog.FileName;
-                Export(new[] { activeBook.FullName }, new[] { outPath });
-            }
-        }
-
-        private void button2_Click(object sender, RibbonControlEventArgs e)
-        {
-            var activeBook = Globals.ThisAddIn.Application.ActiveWorkbook;
-            var bookDir = Path.GetDirectoryName(activeBook.FullName);
-            var dataDir = Path.Combine(bookDir, "Data");
-            if (!Directory.Exists(dataDir))
-                dataDir = bookDir;
-            FolderBrowserDialog dialog = new FolderBrowserDialog();
-            dialog.SelectedPath = dataDir;
-            dialog.Description = "输出到文件夹";
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                var saveDir = dialog.SelectedPath;
-                var files = Directory.GetFiles(bookDir, "*.xl*", SearchOption.TopDirectoryOnly)
-                    .Where(x => !Path.GetFileName(x).StartsWith("~$"))    //过滤临时文件
-                    .ToArray();
-                var tofiles = files.Select(x => Path.Combine(saveDir, Path.ChangeExtension(Path.GetFileName(x), ".lua"))).ToArray();
-                Export(files, tofiles);
-            }
-        }
-
         private void button3_Click(object sender, RibbonControlEventArgs e)
         {
             var form = new SheetListForm();
             form.ShowDialog();
         }
 
-        void ParseErrorFeedback(string output)
+        void ParseErrorFeedback(string err)
         {
-            output = output.Replace("\r\n", "\n");
-            var lines = output.Split('\n');
+            var splited = err.Replace("\r\n", "\n");
+            var lines = splited.Split('\n');
 
             string[] keys = new string[] { "error", "title", "detail", "sheet", "row", "col" };
             Dictionary<string, string> info = new Dictionary<string, string>();
@@ -161,17 +125,21 @@ namespace excel_addin
                 range.Activate();
                 MessageBox.Show(info["detail"], info["title"]);
             }
+            else
+            {
+                MessageBox.Show(err, "internal exception");
+            }
         }
 
         private void button4_Click(object sender, RibbonControlEventArgs e)
         {
-            var xls2lua = Globals.ThisAddIn.Xls2LuaExe;
+            var prog = Globals.ThisAddIn.XlsExporter;
             var activeBook = Globals.ThisAddIn.Application.ActiveWorkbook;
             var file = activeBook.FullName;
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
-                FileName = xls2lua,
-                Arguments = $"\"{file}\" --check",
+                FileName = prog,
+                Arguments = $"-l {Targetlang} \"{file}\" --check",
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardError = true,
@@ -209,12 +177,58 @@ namespace excel_addin
             var dataDir = Path.Combine(bookDir, "Data");
             if (!Directory.Exists(dataDir))
                 dataDir = bookDir;
-            var outfile = Path.Combine(dataDir, Path.ChangeExtension(activeBook.Name, ".lua"));
+            var outfile = Path.Combine(dataDir, Path.ChangeExtension(activeBook.Name, $".{Targetlang}"));
             Debug.WriteLine(outfile);
             if (File.Exists(outfile))
                 Process.Start("explorer", $"/select,\"{outfile}\"");
             else
                 Process.Start("explorer", $"\"{dataDir}\"");
+        }
+
+        private void splitButton1_Click(object sender, RibbonControlEventArgs e)
+        {
+            var activeBook = Globals.ThisAddIn.Application.ActiveWorkbook;
+            var bookDir = Path.GetDirectoryName(activeBook.FullName);
+            var dataDir = Path.Combine(bookDir, "Data");
+            if (!Directory.Exists(dataDir))
+                dataDir = bookDir;
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.FileName = Path.ChangeExtension(activeBook.Name, $".{Targetlang}");
+            dialog.InitialDirectory = dataDir;
+            dialog.Filter = "lua files (*.lua)|*.lua";
+            dialog.FilterIndex = 2;
+            dialog.RestoreDirectory = true;
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                var outPath = dialog.FileName;
+                Export(new[] { activeBook.FullName }, new[] { outPath });
+            }
+        }
+
+        private void button6_Click(object sender, RibbonControlEventArgs e)
+        {
+            var activeBook = Globals.ThisAddIn.Application.ActiveWorkbook;
+            var bookDir = Path.GetDirectoryName(activeBook.FullName);
+            var dataDir = Path.Combine(bookDir, "Data");
+            if (!Directory.Exists(dataDir))
+                dataDir = bookDir;
+            FolderBrowserDialog dialog = new FolderBrowserDialog();
+            dialog.SelectedPath = dataDir;
+            dialog.Description = "输出到文件夹";
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                var saveDir = dialog.SelectedPath;
+                var files = Directory.GetFiles(bookDir, "*.xl*", SearchOption.TopDirectoryOnly)
+                    .Where(x => !Path.GetFileName(x).StartsWith("~$"))    //过滤临时文件
+                    .ToArray();
+                var tofiles = files.Select(x => Path.Combine(saveDir, Path.ChangeExtension(Path.GetFileName(x), ".lua"))).ToArray();
+                Export(files, tofiles);
+            }
+        }
+
+        private void gallery1_Click(object sender, RibbonControlEventArgs e)
+        {
+            Globals.Ribbons.Ribbon1.gallery1.Label = $"{Targetlang}";
         }
     }
 }
