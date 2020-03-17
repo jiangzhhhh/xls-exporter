@@ -8,6 +8,12 @@ import parsimonious
 from typing import List
 
 
+def _skip(text, ch):
+    if text and text[0] == ch:
+        text = text[1:]
+    return text
+
+
 class ValueTree(object):
     def __init__(self, type_tree: TypeTree):
         self.type_tree = type_tree
@@ -22,36 +28,48 @@ class ValueTree(object):
     def _eval_embedded_array(self, row: int, text: str, explicit: bool):
         elem_type = self.type_tree.elem_type
 
+        index = 0
+        remain_text = text.lstrip()
+        if explicit and (len(remain_text) < 2 or remain_text[0] != '['):
+            return 0
+        explicit = remain_text[0] == '['
+        remain_text = _skip(remain_text, '[')
+
         def loop_body(in_out_text, index):
             item_value = ValueTree(elem_type)
             pos = item_value._eval_generic(row, in_out_text, False)
             self.add_member(index, item_value)
             return in_out_text[pos:].lstrip(), index + 1
 
-        index = 0
-        (remain_text, index) = loop_body(text, index)
+        (remain_text, index) = loop_body(remain_text, index)
         while len(remain_text) > 0:
             if not remain_text or remain_text[0] != ',':
                 break
-            remain_text = remain_text.lstrip(',')
+            remain_text = _skip(remain_text, ',')
             (remain_text, index) = loop_body(remain_text, index)
+
+        if explicit and (not remain_text or remain_text[0] != ']'):
+            return 0;
+        remain_text = _skip(remain_text, ']')
+        remain_text = remain_text.lstrip()
         return len(text) - len(remain_text)
 
     def _eval_tuple(self, row: int, text: str, explicit: bool):
         remain_text = text.lstrip()
         if explicit and (len(remain_text) < 2 or remain_text[0] != '('):
             return 0
-        remain_text = remain_text.lstrip('(')
+        explicit = remain_text[0] == '('
+        remain_text = _skip(remain_text, '(')
         for (i, m) in self.members:
             if i > 0:
                 if not remain_text or remain_text[0] != ',':
                     return 0
-                remain_text = remain_text.lstrip(',')
+                remain_text = _skip(remain_text, ',')
             pos = m._eval_generic(row, remain_text, False)
             remain_text = remain_text[pos:]
         if explicit and (not remain_text or remain_text[0] != ')'):
             return 0
-        remain_text = remain_text.lstrip(')')
+        remain_text = _skip(remain_text, ')')
         remain_text = remain_text.lstrip()
         return len(text) - len(remain_text)
 
