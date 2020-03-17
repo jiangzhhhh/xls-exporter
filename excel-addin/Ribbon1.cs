@@ -78,7 +78,7 @@ namespace excel_addin
                 }
                 catch (System.ComponentModel.Win32Exception)
                 {
-                    MessageBox.Show("找不到xls2lua");
+                    MessageBox.Show("找不到xls-exporter");
                     return;
                 }
             }
@@ -165,7 +165,7 @@ namespace excel_addin
             }
             catch (System.ComponentModel.Win32Exception)
             {
-                MessageBox.Show("找不到xls2lua");
+                MessageBox.Show("找不到找不到xls-exporter");
                 return;
             }
         }
@@ -195,7 +195,7 @@ namespace excel_addin
             SaveFileDialog dialog = new SaveFileDialog();
             dialog.FileName = Path.ChangeExtension(activeBook.Name, $".{Targetlang}");
             dialog.InitialDirectory = dataDir;
-            dialog.Filter = "lua files (*.lua)|*.lua";
+            dialog.Filter = $"{Targetlang} files (*.{Targetlang})|*.{Targetlang}";
             dialog.FilterIndex = 2;
             dialog.RestoreDirectory = true;
             if (dialog.ShowDialog() == DialogResult.OK)
