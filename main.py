@@ -57,5 +57,6 @@ def cmd(argv):
 
 
 if __name__ == '__main__':
-    cmd(sys.argv[1:])
-    # cmd('example/example.xlsx -l cpp'.split())
+    exit_error = cmd(sys.argv[1:])
+    # exit_error = cmd('example/example.xlsx -l lua --check'.split())
+    sys.exit(exit_error)
