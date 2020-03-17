@@ -30,10 +30,10 @@
     <DefineConstants>VSTO40</DefineConstants>
     <IsWebBootstrapper>False</IsWebBootstrapper>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <PublishUrl>E:\work\xls-exporter\example\Tools\excel-addin\</PublishUrl>
+    <PublishUrl>E:\work\jiangzhuohao_DESKTOP-5ONOMSB_mainline_6540\configs\Tools\excel-addin\</PublishUrl>
     <InstallUrl />
     <TargetCulture>zh-chs</TargetCulture>
-    <ApplicationVersion>1.0.1.2</ApplicationVersion>
+    <ApplicationVersion>1.0.1.3</ApplicationVersion>
     <AutoIncrementApplicationRevision>false</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>0</UpdateInterval>
